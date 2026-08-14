@@ -1,0 +1,6 @@
+{
+  "name": "Agam PG",
+  "description": "PG and Hostel Management application with occupancy tracking, room management, tenant records, and rent collection.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
