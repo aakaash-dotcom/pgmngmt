@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="108" fill="#FFFDF8"/>
+  
+  <!-- Subtle border -->
+  <rect x="2" y="2" width="508" height="508" rx="106" fill="none" stroke="#06352c" stroke-opacity="0.08" stroke-width="4"/>
+
+  <g transform="translate(36, 110)">
+    <!-- Orange accent line under the first letters -->
+    <rect x="18" y="248" width="138" height="14" rx="7" fill="#F48B28" />
+
+    <!-- 'a' (with integrated house icon) -->
+    <!-- Outer 'a' bowl & arch -->
+    <path d="M106 50 C 48 50, 10 92, 10 156 C 10 220, 52 262, 112 262 C 152 262, 182 240, 194 212 L 194 256 L 222 256 L 222 56 L 194 56 L 194 100 C 182 72, 150 50, 106 50 Z M 116 82 C 160 82, 194 116, 194 160 C 194 204, 160 234, 116 234 C 74 234, 40 200, 40 158 C 40 114, 74 82, 116 82 Z" fill="#073B32" />
+    
+    <!-- House Roof inside 'a' -->
+    <path d="M 116 116 L 76 150 L 88 150 L 116 126 L 144 150 L 156 150 Z" fill="#073B32" />
+    
+    <!-- House 4-pane Orange Window -->
+    <rect x="104" y="158" width="10" height="10" rx="1.5" fill="#F48B28" />
+    <rect x="118" y="158" width="10" height="10" rx="1.5" fill="#F48B28" />
+    <rect x="104" y="172" width="10" height="10" rx="1.5" fill="#F48B28" />
+    <rect x="118" y="172" width="10" height="10" rx="1.5" fill="#F48B28" />
+
+    <!-- 'g' -->
+    <path d="M 334 56 L 306 56 L 306 94 C 294 66, 264 50, 226 50 C 172 50, 132 92, 132 154 C 132 216, 172 258, 228 258 C 266 258, 296 240, 306 210 L 306 254 C 306 300, 278 322, 230 322 C 196 322, 170 308, 158 288 L 132 304 C 150 334, 186 352, 230 352 C 298 352, 334 314, 334 250 L 334 56 Z M 232 80 C 274 80, 306 112, 306 154 C 306 196, 274 228, 232 228 C 190 228, 160 196, 160 154 C 160 112, 190 80, 232 80 Z" fill="#073B32" transform="translate(10, 0)" />
+
+    <!-- 'a' second letter -->
+    <path d="M 390 50 C 334 50, 298 90, 298 154 C 298 218, 334 258, 390 258 C 426 258, 452 240, 464 212 L 464 256 L 492 256 L 492 56 L 464 56 L 464 96 C 452 68, 426 50, 390 50 Z M 396 80 C 438 80, 464 112, 464 154 C 464 196, 438 228, 396 228 C 354 228, 326 196, 326 154 C 326 112, 354 80, 396 80 Z" fill="#073B32" transform="translate(18, 0)" />
+
+    <!-- 'm' -->
+    <path d="M 540 56 L 512 56 L 512 256 L 540 256 L 540 134 C 540 98, 560 80, 588 80 C 614 80, 630 96, 630 130 L 630 256 L 658 256 L 658 134 C 658 98, 678 80, 706 80 C 732 80, 748 96, 748 130 L 748 256 L 776 256 L 776 122 C 776 74, 748 50, 706 50 C 674 50, 648 66, 636 94 C 624 66, 598 50, 566 50 C 548 50, 530 58, 518 72 L 518 56 Z" fill="#073B32" transform="matrix(0.58 0 0 1 200 0)" />
+
+    <!-- Subtitle: MEN'S PG & STAY -->
+    <text x="220" y="292" font-family="'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif" font-size="28" font-weight="900" letter-spacing="4.5" fill="#073B32">MEN'S PG &amp; STAY</text>
+  </g>
+</svg>
