@@ -1,0 +1,129 @@
+{
+  "entities": {
+    "Room": {
+      "title": "Room",
+      "description": "Hostel/PG room configuration and live occupancy state",
+      "type": "object",
+      "properties": {
+        "id": { "type": "number" },
+        "number": { "type": "string" },
+        "floor": { "type": "number" },
+        "capacity": { "type": "number" },
+        "occupied": { "type": "number" },
+        "perBedRent": { "type": "number" },
+        "type": { "type": "string" },
+        "status": { "type": "string" },
+        "amenities": { "type": "array", "items": { "type": "string" } },
+        "notes": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "number", "capacity", "occupied", "perBedRent"]
+    },
+    "Tenant": {
+      "title": "Tenant",
+      "description": "PG resident record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "room": { "type": "string" },
+        "bed": { "type": "string" },
+        "rent": { "type": "number" },
+        "deposit": { "type": "number" },
+        "status": { "type": "string" },
+        "dueDate": { "type": "string" },
+        "joinDate": { "type": "string" },
+        "lastPaidDate": { "type": "string" },
+        "workplace": { "type": "string" },
+        "isCorporate": { "type": "boolean" },
+        "corporateCompany": { "type": "string" },
+        "idProofType": { "type": "string" },
+        "idProofNumber": { "type": "string" },
+        "emergencyContact": { "type": "string" },
+        "emergencyPhone": { "type": "string" },
+        "notes": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "name", "phone", "room", "rent"]
+    },
+    "Payment": {
+      "title": "Payment",
+      "description": "Rent and deposit financial records",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "tenantId": { "type": "string" },
+        "tenantName": { "type": "string" },
+        "room": { "type": "string" },
+        "amount": { "type": "number" },
+        "date": { "type": "string" },
+        "month": { "type": "string" },
+        "type": { "type": "string" },
+        "mode": { "type": "string" },
+        "status": { "type": "string" },
+        "receiptNo": { "type": "string" },
+        "notes": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "tenantId", "amount", "date", "type", "status"]
+    },
+    "Staff": {
+      "title": "Staff",
+      "description": "PG staff and operations team",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "role": { "type": "string" },
+        "phone": { "type": "string" },
+        "salary": { "type": "number" },
+        "shift": { "type": "string" },
+        "status": { "type": "string" },
+        "joinDate": { "type": "string" },
+        "notes": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "name", "role", "phone"]
+    },
+    "CorporateGroup": {
+      "title": "CorporateGroup",
+      "description": "Corporate or college batch accounts",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "companyName": { "type": "string" },
+        "contactPerson": { "type": "string" },
+        "contactPhone": { "type": "string" },
+        "contactEmail": { "type": "string" },
+        "totalBeds": { "type": "number" },
+        "billingType": { "type": "string" },
+        "notes": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "companyName"]
+    }
+  },
+  "firestore": {
+    "/rooms/{roomId}": {
+      "schema": "#/entities/Room",
+      "description": "PG room entities"
+    },
+    "/tenants/{tenantId}": {
+      "schema": "#/entities/Tenant",
+      "description": "PG resident records"
+    },
+    "/payments/{paymentId}": {
+      "schema": "#/entities/Payment",
+      "description": "Financial ledger transactions"
+    },
+    "/staff/{staffId}": {
+      "schema": "#/entities/Staff",
+      "description": "PG staff directory"
+    },
+    "/corporateGroups/{groupId}": {
+      "schema": "#/entities/CorporateGroup",
+      "description": "Corporate batch accounts"
+    }
+  }
+}

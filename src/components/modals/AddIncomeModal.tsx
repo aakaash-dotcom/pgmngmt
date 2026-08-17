@@ -1,35 +1,31 @@
 import React, { useState } from 'react';
-import { Expense, ExpenseCategory } from '../../types';
+import { Income, IncomeCategory } from '../../types';
 
-interface AddExpenseModalProps {
+interface AddIncomeModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAddExpense: (expense: Omit<Expense, 'id'>) => void;
+  onAddIncome: (income: Omit<Income, 'id'>) => void;
 }
 
-const EXPENSE_CATEGORIES: ExpenseCategory[] = [
-  'Electricity',
-  'Building Rent',
-  'Water Tanker',
-  'Internet / Wi-Fi',
-  'Housekeeping & Cleaning',
-  'Plumbing & Repairs',
-  'Staff & Caretaker Salary',
-  'Waste Disposal',
-  'Property Tax / Govt',
-  'Miscellaneous',
+const INCOME_CATEGORIES: IncomeCategory[] = [
+  'Monthly Rent',
+  'Security Deposit',
+  'Admission / Registration',
+  'Late Fine / Penalty',
+  'Extra Amenity / Key',
+  'Other Income',
 ];
 
-export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
+export const AddIncomeModal: React.FC<AddIncomeModalProps> = ({
   isOpen,
   onClose,
-  onAddExpense,
+  onAddIncome,
 }) => {
   const [title, setTitle] = useState('');
-  const [category, setCategory] = useState<ExpenseCategory>('Electricity');
-  const [amount, setAmount] = useState<number>(1500);
+  const [category, setCategory] = useState<IncomeCategory>('Admission / Registration');
+  const [amount, setAmount] = useState<number>(1000);
   const [date, setDate] = useState('2026-08-14');
-  const [paidTo, setPaidTo] = useState('');
+  const [receivedFrom, setReceivedFrom] = useState('');
   const [paymentMode, setPaymentMode] = useState<'UPI' | 'Cash' | 'Bank Transfer'>('UPI');
   const [notes, setNotes] = useState('');
 
@@ -39,12 +35,12 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
     e.preventDefault();
     if (!title.trim() || !amount) return;
 
-    onAddExpense({
+    onAddIncome({
       title: title.trim(),
       category,
       amount: Number(amount),
       date,
-      paidTo: paidTo.trim() || 'Vendor',
+      receivedFrom: receivedFrom.trim() || 'Tenant / Customer',
       paymentMode,
       monthYear: 'Aug 2026',
       notes: notes.trim() || undefined,
@@ -61,12 +57,12 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
         {/* Header */}
         <div className="bg-slate-50 border-b border-slate-200 p-4 px-6 flex justify-between items-center">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 border border-rose-100 flex items-center justify-center">
-              <span className="material-symbols-outlined text-[20px]">account_balance_wallet</span>
+            <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center">
+              <span className="material-symbols-outlined text-[20px]">add_card</span>
             </div>
             <div>
-              <h3 className="text-[17px] font-bold text-slate-900 leading-tight">Log PG Expense</h3>
-              <p className="text-[12px] text-slate-500 font-medium">Record operational cost for balance sheet</p>
+              <h3 className="text-[17px] font-bold text-slate-900 leading-tight">Log Income / Revenue</h3>
+              <p className="text-[12px] text-slate-500 font-medium">Record non-rent revenue, deposits or fees</p>
             </div>
           </div>
           <button
@@ -81,29 +77,29 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
         <form onSubmit={handleSubmit} className="p-6 overflow-y-auto flex flex-col gap-4 text-[13px]">
           <div>
             <label className="block font-bold text-slate-700 text-[12px] mb-1.5">
-              Expense Title / Description *
+              Income Description *
             </label>
             <input
               type="text"
               required
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Commercial EB Bill August or Water Tanker (2 loads)"
-              className="w-full h-[42px] px-3.5 border border-slate-300 rounded-xl bg-white text-slate-900 font-bold focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-600"
+              placeholder="e.g. New Admission Fee (Room 201) or Security Deposit"
+              className="w-full h-[42px] px-3.5 border border-slate-300 rounded-xl bg-white text-slate-900 font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block font-bold text-slate-700 text-[12px] mb-1.5">
-                Category *
+                Income Category *
               </label>
               <select
                 value={category}
-                onChange={(e) => setCategory(e.target.value as ExpenseCategory)}
-                className="w-full h-[42px] px-3 border border-slate-300 rounded-xl bg-white text-slate-900 font-semibold focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-600"
+                onChange={(e) => setCategory(e.target.value as IncomeCategory)}
+                className="w-full h-[42px] px-3 border border-slate-300 rounded-xl bg-white text-slate-900 font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
               >
-                {EXPENSE_CATEGORIES.map((cat) => (
+                {INCOME_CATEGORIES.map((cat) => (
                   <option key={cat} value={cat}>
                     {cat}
                   </option>
@@ -123,7 +119,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
                   min={1}
                   value={amount}
                   onChange={(e) => setAmount(Number(e.target.value))}
-                  className="w-full h-[42px] pl-8 pr-3 border border-rose-300 rounded-xl bg-rose-50/30 text-rose-700 font-extrabold text-[16px] focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-600"
+                  className="w-full h-[42px] pl-8 pr-3 border border-emerald-300 rounded-xl bg-emerald-50/30 text-emerald-800 font-extrabold text-[16px] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
                 />
               </div>
             </div>
@@ -132,26 +128,26 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block font-bold text-slate-700 text-[12px] mb-1.5">
-                Paid To (Vendor / Person)
+                Received From (Person)
               </label>
               <input
                 type="text"
-                value={paidTo}
-                onChange={(e) => setPaidTo(e.target.value)}
-                placeholder="e.g. EB Board / Somu Caretaker"
-                className="w-full h-[42px] px-3.5 border border-slate-300 rounded-xl bg-white text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-600"
+                value={receivedFrom}
+                onChange={(e) => setReceivedFrom(e.target.value)}
+                placeholder="e.g. Anand Sharma / Guest"
+                className="w-full h-[42px] px-3.5 border border-slate-300 rounded-xl bg-white text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
               />
             </div>
 
             <div>
               <label className="block font-bold text-slate-700 text-[12px] mb-1.5">
-                Expense Date
+                Date
               </label>
               <input
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="w-full h-[42px] px-3.5 border border-slate-300 rounded-xl bg-white text-slate-900 font-semibold focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-600"
+                className="w-full h-[42px] px-3.5 border border-slate-300 rounded-xl bg-white text-slate-900 font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
               />
             </div>
           </div>
@@ -168,7 +164,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
                   onClick={() => setPaymentMode(mode)}
                   className={`py-2 px-2 text-[12px] font-bold rounded-xl border text-center transition-all ${
                     paymentMode === mode
-                      ? 'bg-rose-600 text-white border-rose-600 shadow-2xs'
+                      ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
                       : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
                   }`}
                 >
@@ -180,14 +176,14 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
 
           <div>
             <label className="block font-bold text-slate-700 text-[12px] mb-1.5">
-              Receipt / Transaction Note
+              Notes / Transaction Ref
             </label>
             <input
               type="text"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="e.g. Bill #48912, paid from Canara Bank A/c"
-              className="w-full h-[42px] px-3.5 border border-slate-300 rounded-xl bg-white text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-600"
+              placeholder="e.g. Ref: GPay/19283719"
+              className="w-full h-[42px] px-3.5 border border-slate-300 rounded-xl bg-white text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
             />
           </div>
 
@@ -201,10 +197,10 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
             </button>
             <button
               type="submit"
-              className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold text-[13px] shadow-sm hover:shadow transition-all flex items-center justify-center gap-1.5"
+              className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-[13px] shadow-sm hover:shadow transition-all flex items-center justify-center gap-1.5"
             >
               <span className="material-symbols-outlined text-[18px]">add_circle</span>
-              <span>Save Expense</span>
+              <span>Save Income</span>
             </button>
           </div>
         </form>

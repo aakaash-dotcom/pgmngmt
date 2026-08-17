@@ -1,6 +1,6 @@
 {
   "name": "Agam PG",
-  "description": "PG and Hostel Management application with occupancy tracking, room management, tenant records, and rent collection.",
-  "requestFramePermissions": [],
+  "description": "Agam Gents PG management app with Cloud SQL PostgreSQL persistence and Google Workspace integrations (Google Sheets, Drive backups, Tasks, Calendar reminders, Contacts & Google Picker).",
+  "requestFramePermissions": ["camera"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

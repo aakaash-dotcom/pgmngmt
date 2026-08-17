@@ -1,60 +1,79 @@
 import React from 'react';
 import { TabType } from '../types';
+import { AgamLogo } from './AgamLogo';
 
 interface TopAppBarProps {
   currentTab: TabType;
-  onOpenDrawer: () => void;
-  onAddClick: () => void;
+  onOpenSideDrawer: () => void;
+  cloudSyncStatus?: 'synced' | 'syncing' | 'offline';
+  lastSyncTime?: string;
 }
+
+const TAB_TITLES: Record<TabType, { label: string; icon: string }> = {
+  home: { label: 'Dashboard', icon: 'dashboard' },
+  rooms: { label: 'Rooms', icon: 'meeting_room' },
+  people: { label: 'Tenants', icon: 'groups' },
+  money: { label: 'Accounts', icon: 'account_balance' },
+  more: { label: 'Operations', icon: 'tune' },
+};
 
 export const TopAppBar: React.FC<TopAppBarProps> = ({
   currentTab,
-  onOpenDrawer,
-  onAddClick,
+  onOpenSideDrawer,
+  cloudSyncStatus = 'synced',
+  lastSyncTime = 'Just now',
 }) => {
-  const getTitle = () => {
-    switch (currentTab) {
-      case 'money':
-        return 'Money';
-      case 'rooms':
-        return 'Rooms';
-      case 'people':
-        return 'Tenants';
-      case 'more':
-        return 'Services';
-      case 'home':
-      default:
-        return 'Agam PG';
-    }
-  };
+  const current = TAB_TITLES[currentTab] || { label: 'Dashboard', icon: 'dashboard' };
 
   return (
     <header
       id="top-app-bar"
-      className="bg-[#000000] text-[#FFFFFF] shadow-md flex justify-between items-center px-4 h-[58px] w-full z-50 fixed top-0 left-0 right-0 border-b border-[#222222]"
+      className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs"
     >
-      <button
-        id="btn-open-menu-drawer"
-        aria-label="Menu"
-        onClick={onOpenDrawer}
-        className="w-[44px] h-[44px] flex items-center justify-center hover:bg-[#1a1a1a] active:scale-95 transition-all text-[#FFFFFF] rounded-lg"
-      >
-        <span className="material-symbols-outlined text-[24px]">menu</span>
-      </button>
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 h-[54px] flex items-center justify-between gap-3">
+        {/* Left Side: Drawer Toggle & Brand Logo */}
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          <button
+            onClick={onOpenSideDrawer}
+            className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 transition-colors"
+            title="Open Menu"
+          >
+            <span className="material-symbols-outlined text-[20px]">menu</span>
+          </button>
 
-      <div className="font-black text-[20px] sm:text-[22px] tracking-tight uppercase text-[#FFFFFF] text-center flex-1 truncate px-2">
-        <span className="text-[#E2FF00] mr-1">/</span>
-        {getTitle()}
+          {/* Official Agam Vector Logo with proper bounds */}
+          <div className="flex items-center overflow-visible pl-0.5">
+            <AgamLogo size="md" variant="full" />
+          </div>
+        </div>
+
+        {/* Right Side: Cloud Sync Indicator & Page Badge */}
+        <div className="flex items-center gap-2">
+          <div 
+            title={`Multi-Device Cloud Sync: ${cloudSyncStatus === 'syncing' ? 'Syncing to cloud...' : 'Live Synced across devices'} (${lastSyncTime})`}
+            className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-colors ${
+              cloudSyncStatus === 'syncing' 
+                ? 'bg-amber-50 text-amber-800 border-amber-200 animate-pulse'
+                : 'bg-emerald-50 text-emerald-800 border-emerald-200/80'
+            }`}
+          >
+            <span className={`w-2 h-2 rounded-full ${cloudSyncStatus === 'syncing' ? 'bg-amber-500' : 'bg-emerald-600'}`} />
+            <span>{cloudSyncStatus === 'syncing' ? 'Syncing...' : 'Cloud Synced'}</span>
+          </div>
+
+          <div
+            id="current-page-badge"
+            className="h-[34px] px-3 bg-slate-50 border border-slate-200 text-slate-800 rounded-xl text-[12px] font-black flex items-center gap-1.5 shadow-2xs select-none"
+          >
+            <span className="material-symbols-outlined text-[16px] text-emerald-700">
+              {current.icon}
+            </span>
+            <span className="tracking-tight uppercase text-slate-900">
+              {current.label}
+            </span>
+          </div>
+        </div>
       </div>
-
-      <button
-        id="btn-top-app-add"
-        onClick={onAddClick}
-        className="h-[38px] px-3.5 bg-[#E2FF00] text-black font-black text-[13px] tracking-wider uppercase hover:bg-[#d4f000] active:scale-95 transition-all rounded-lg flex items-center gap-1 shadow-[0_0_12px_rgba(226,255,0,0.3)]"
-      >
-        <span className="material-symbols-outlined text-[18px]">add</span>
-        <span>ADD</span>
-      </button>
     </header>
   );
 };

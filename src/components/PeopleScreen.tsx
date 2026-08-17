@@ -1,254 +1,331 @@
 import React, { useState, useMemo } from 'react';
-import { Tenant } from '../types';
+import { Tenant, BulkGroup } from '../types';
 
 interface PeopleScreenProps {
-  tenants: Tenant[];
+  tenants?: Tenant[];
+  bulkGroups?: BulkGroup[];
   onSelectTenant: (tenant: Tenant) => void;
   onAddTenant: () => void;
-  initialFilter?: string;
+  onOpenBulkManager?: () => void;
+  onCollectRent: (tenantId: string) => void;
+  onSendWhatsAppReminder: (tenant: Tenant) => void;
 }
 
 export const PeopleScreen: React.FC<PeopleScreenProps> = ({
-  tenants,
+  tenants = [],
+  bulkGroups = [],
   onSelectTenant,
   onAddTenant,
-  initialFilter,
+  onOpenBulkManager,
+  onCollectRent,
+  onSendWhatsAppReminder,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTabFilter, setActiveTabFilter] = useState<'active' | 'left' | 'overdue'>(
-    initialFilter === 'overdue' ? 'overdue' : 'active'
-  );
+  const [activeFilter, setActiveFilter] = useState<string>('active'); // 'active', 'individual', 'bulk', 'overdue', 'checked_out', or specific groupName
+  const [roomFilter, setRoomFilter] = useState<string>('all');
 
+  const activeTenants = tenants.filter((t) => t.isActive);
+  const checkedOutTenants = tenants.filter((t) => !t.isActive);
+  const overdueTenants = activeTenants.filter((t) => t.status === 'Overdue' || t.status === 'Unpaid');
+  const bulkTenants = activeTenants.filter((t) => t.isBulkContract);
+
+  // Filtered tenants list
   const filteredTenants = useMemo(() => {
-    return tenants.filter((tenant) => {
-      // Tab filter
-      if (activeTabFilter === 'active' && !tenant.isActive) return false;
-      if (activeTabFilter === 'left' && tenant.isActive) return false;
-      if (activeTabFilter === 'overdue' && (tenant.status !== 'Overdue' || !tenant.isActive)) return false;
+    return tenants.filter((t) => {
+      // Search filter
+      const matchesSearch =
+        t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        t.phone.includes(searchQuery) ||
+        t.roomNumber.toString().includes(searchQuery) ||
+        (t.companyName && t.companyName.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (t.groupName && t.groupName.toLowerCase().includes(searchQuery.toLowerCase()));
 
-      // Search query
-      if (searchQuery.trim()) {
-        const query = searchQuery.toLowerCase();
-        const matchesName = tenant.name.toLowerCase().includes(query);
-        const matchesPhone = tenant.phone.toLowerCase().includes(query);
-        const matchesRoom = String(tenant.roomNumber).includes(query) || `room ${tenant.roomNumber}`.includes(query);
-        if (!matchesName && !matchesPhone && !matchesRoom) {
-          return false;
-        }
+      // Room filter
+      const matchesRoom = roomFilter === 'all' || t.roomNumber.toString() === roomFilter;
+
+      // Category tab filter
+      let matchesCategory = true;
+      if (activeFilter === 'active') {
+        matchesCategory = t.isActive;
+      } else if (activeFilter === 'individual') {
+        matchesCategory = t.isActive && !t.isBulkContract;
+      } else if (activeFilter === 'bulk') {
+        matchesCategory = t.isActive && !!t.isBulkContract;
+      } else if (activeFilter === 'overdue') {
+        matchesCategory = t.isActive && (t.status === 'Overdue' || t.status === 'Unpaid' || t.status === 'Partial');
+      } else if (activeFilter === 'checked_out') {
+        matchesCategory = !t.isActive;
+      } else {
+        // Specific group name filter
+        matchesCategory = t.isActive && (t.groupName === activeFilter || t.companyName === activeFilter);
       }
 
-      return true;
+      return matchesSearch && matchesRoom && matchesCategory;
     });
-  }, [tenants, activeTabFilter, searchQuery]);
+  }, [tenants, searchQuery, activeFilter, roomFilter]);
 
-  const getStatusBadge = (status: Tenant['status'], isActive: boolean) => {
-    if (!isActive) {
-      return (
-        <span className="bg-[#262626] text-[#888888] rounded-full px-2.5 py-[2px] text-[11px] font-black uppercase tracking-wider mt-1 border border-[#333333]">
-          Left
-        </span>
-      );
-    }
-
-    switch (status) {
-      case 'Paid':
-        return (
-          <span className="bg-[#E2FF00] text-black rounded-full px-2.5 py-[2px] text-[11px] font-black uppercase tracking-wider mt-1 shadow-[0_0_8px_rgba(226,255,0,0.3)]">
-            Paid
-          </span>
-        );
-      case 'Overdue':
-        return (
-          <span className="bg-[#ff3b30] text-white rounded-full px-2.5 py-[2px] text-[11px] font-black uppercase tracking-wider mt-1">
-            Overdue
-          </span>
-        );
-      case 'Partial':
-        return (
-          <span className="bg-[#ffaa00] text-black rounded-full px-2.5 py-[2px] text-[11px] font-black uppercase tracking-wider mt-1">
-            Partial
-          </span>
-        );
-      case 'Unpaid':
-        return (
-          <span className="bg-[#ffaa00] text-black rounded-full px-2.5 py-[2px] text-[11px] font-black uppercase tracking-wider mt-1">
-            Unpaid
-          </span>
-        );
-      default:
-        return null;
-    }
-  };
-
-  const getStatusBorderColor = (status: Tenant['status'], isActive: boolean) => {
-    if (!isActive) return 'bg-[#666666]';
-    switch (status) {
-      case 'Paid':
-        return 'bg-[#E2FF00]';
-      case 'Overdue':
-        return 'bg-[#ff3b30]';
-      case 'Partial':
-      case 'Unpaid':
-        return 'bg-[#ffaa00]';
-      default:
-        return 'bg-[#E2FF00]';
-    }
-  };
+  const uniqueRooms = Array.from(new Set(tenants.map((t) => t.roomNumber))).sort((a, b) => Number(a) - Number(b));
 
   return (
-    <div className="w-full max-w-3xl mx-auto pb-24 relative">
-      {/* Page Header & Search */}
-      <section className="px-4 pt-4 pb-3">
-        <h1 className="text-[28px] font-black text-white uppercase tracking-tight mb-3 leading-tight">
-          Tenants
-        </h1>
-
-        <div className="relative flex items-center w-full">
-          <input
-            id="input-tenant-search"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full h-[48px] pl-4 pr-[48px] border border-[#333333] rounded-xl bg-[#141414] text-white text-[15px] focus:border-[#E2FF00] focus:ring-1 focus:ring-[#E2FF00] focus:outline-none shadow-md transition-all placeholder:text-[#666666] font-medium"
-            placeholder="Search by Name / Phone / Room..."
-            type="text"
-          />
-          {searchQuery ? (
-            <button
-              onClick={() => setSearchQuery('')}
-              className="absolute right-3 text-[#888888] hover:text-white p-1"
-            >
-              <span className="material-symbols-outlined text-[20px]">close</span>
-            </button>
-          ) : (
-            <span
-              className="material-symbols-outlined text-[#888888] absolute right-4 pointer-events-none"
-              style={{ fontVariationSettings: "'FILL' 0" }}
-            >
-              search
-            </span>
+    <div className="flex flex-col gap-3 pb-20 max-w-7xl mx-auto px-3 sm:px-4 pt-1.5">
+      {/* Top Action & Stat Bar */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-3 shadow-xs flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <div className="bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-xl px-3 py-1.5 flex items-center gap-1.5">
+            <span className="material-symbols-outlined text-[16px] text-emerald-700">person</span>
+            <span className="text-[12px] font-black">{activeTenants.length} Active</span>
+          </div>
+          {overdueTenants.length > 0 && (
+            <div className="bg-rose-50 border border-rose-200 text-rose-800 rounded-xl px-2.5 py-1.5 flex items-center gap-1">
+              <span className="text-[11px] font-bold">{overdueTenants.length} Dues</span>
+            </div>
           )}
         </div>
-      </section>
 
-      {/* Filters */}
-      <section className="px-4 flex gap-2 mb-4 overflow-x-auto no-scrollbar py-1">
-        <button
-          id="filter-active-only"
-          onClick={() => setActiveTabFilter('active')}
-          className={`rounded-xl px-4 py-1.5 text-[12px] font-black uppercase tracking-wider whitespace-nowrap shadow-xs active:scale-95 transition-all border ${
-            activeTabFilter === 'active'
-              ? 'bg-[#E2FF00] text-black border-[#E2FF00] shadow-[0_0_15px_rgba(226,255,0,0.3)]'
-              : 'bg-[#141414] border-[#262626] text-[#888888] hover:text-white'
-          }`}
-        >
-          Active Only ({tenants.filter((t) => t.isActive).length})
-        </button>
+        <div className="flex items-center gap-1.5">
+          {onOpenBulkManager && (
+            <button
+              onClick={onOpenBulkManager}
+              className="h-[38px] px-3 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 font-extrabold rounded-xl text-[11px] flex items-center gap-1 transition-colors"
+            >
+              <span className="material-symbols-outlined text-[16px]">corporate_fare</span>
+              <span className="hidden sm:inline">Groups</span>
+            </button>
+          )}
 
-        <button
-          id="filter-show-left"
-          onClick={() => setActiveTabFilter('left')}
-          className={`rounded-xl px-4 py-1.5 text-[12px] font-black uppercase tracking-wider whitespace-nowrap active:scale-95 transition-all border ${
-            activeTabFilter === 'left'
-              ? 'bg-[#E2FF00] text-black border-[#E2FF00] shadow-[0_0_15px_rgba(226,255,0,0.3)]'
-              : 'bg-[#141414] border-[#262626] text-[#888888] hover:text-white'
-          }`}
-        >
-          Show Left ({tenants.filter((t) => !t.isActive).length})
-        </button>
+          <button
+            onClick={onAddTenant}
+            className="h-[38px] px-3.5 bg-slate-900 hover:bg-slate-800 text-white font-black rounded-xl shadow-2xs transition-colors flex items-center justify-center gap-1.5 text-[12px] whitespace-nowrap"
+          >
+            <span className="material-symbols-outlined text-[16px]">person_add</span>
+            <span>Add Tenant</span>
+          </button>
+        </div>
+      </div>
 
-        <button
-          id="filter-overdue-only"
-          onClick={() => setActiveTabFilter('overdue')}
-          className={`rounded-xl px-4 py-1.5 text-[12px] font-black uppercase tracking-wider whitespace-nowrap active:scale-95 transition-all border ${
-            activeTabFilter === 'overdue'
-              ? 'bg-[#ff3b30] text-white border-[#ff3b30]'
-              : 'bg-[#141414] border-[#262626] text-[#888888] hover:text-white'
-          }`}
-        >
-          Overdue ({tenants.filter((t) => t.isActive && t.status === 'Overdue').length})
-        </button>
-      </section>
+      {/* Search & Filters */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-3 shadow-xs flex flex-col gap-2.5">
+        {/* Search Input */}
+        <div className="relative w-full">
+          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">
+            search
+          </span>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by name, phone, room # or group..."
+            className="w-full h-[38px] pl-9 pr-4 bg-slate-50 border border-slate-200 rounded-xl text-[13px] text-slate-900 font-medium placeholder-slate-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+            >
+              <span className="material-symbols-outlined text-[16px]">close</span>
+            </button>
+          )}
+        </div>
 
-      {/* Tenant List */}
-      <section className="px-4 flex flex-col gap-3">
+        {/* Category Filter Chips */}
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5 text-[11px]">
+          <button
+            onClick={() => setActiveFilter('active')}
+            className={`h-[28px] px-2.5 rounded-lg font-bold whitespace-nowrap transition-all flex items-center gap-1 ${
+              activeFilter === 'active'
+                ? 'bg-slate-900 text-white shadow-2xs'
+                : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200'
+            }`}
+          >
+            <span>All Active</span>
+            <span className="bg-white/20 text-current text-[10px] px-1 py-0.2 rounded-full font-black">
+              {activeTenants.length}
+            </span>
+          </button>
+
+          <button
+            onClick={() => setActiveFilter('bulk')}
+            className={`h-[28px] px-2.5 rounded-lg font-bold whitespace-nowrap transition-all flex items-center gap-1 ${
+              activeFilter === 'bulk'
+                ? 'bg-amber-600 text-white shadow-2xs'
+                : 'bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200'
+            }`}
+          >
+            <span className="material-symbols-outlined text-[14px]">corporate_fare</span>
+            <span>Groups ({bulkTenants.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveFilter('overdue')}
+            className={`h-[28px] px-2.5 rounded-lg font-bold whitespace-nowrap transition-all flex items-center gap-1 ${
+              activeFilter === 'overdue'
+                ? 'bg-rose-600 text-white shadow-2xs'
+                : 'bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200'
+            }`}
+          >
+            <span className="material-symbols-outlined text-[14px]">warning</span>
+            <span>Overdue ({overdueTenants.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveFilter('individual')}
+            className={`h-[28px] px-2.5 rounded-lg font-bold whitespace-nowrap transition-all ${
+              activeFilter === 'individual'
+                ? 'bg-slate-800 text-white shadow-2xs'
+                : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200'
+            }`}
+          >
+            Individual
+          </button>
+
+          <button
+            onClick={() => setActiveFilter('checked_out')}
+            className={`h-[28px] px-2.5 rounded-lg font-bold whitespace-nowrap transition-all ${
+              activeFilter === 'checked_out'
+                ? 'bg-slate-700 text-white shadow-2xs'
+                : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200'
+            }`}
+          >
+            Checked Out ({checkedOutTenants.length})
+          </button>
+        </div>
+      </div>
+
+      {/* Tenants List / Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
         {filteredTenants.map((tenant) => {
-          const borderStripColor = getStatusBorderColor(tenant.status, tenant.isActive);
+          const isOverdue = tenant.status === 'Overdue' || tenant.status === 'Unpaid';
+          const isCompanyBilled = tenant.status === 'Company Billed' || tenant.billingModel === 'company_end_of_month';
+          const isPartial = tenant.status === 'Partial';
+          const isPaid = tenant.status === 'Paid';
 
           return (
-            <article
+            <div
               key={tenant.id}
-              id={`tenant-row-${tenant.id}`}
               onClick={() => onSelectTenant(tenant)}
-              className="relative bg-[#121212] border border-[#262626] rounded-2xl pl-[20px] pr-3 py-3.5 flex justify-between items-center shadow-[0_4px_20px_rgba(0,0,0,0.5)] min-h-[68px] hover:border-[#E2FF00] transition-all cursor-pointer select-none group"
+              className="bg-white border border-slate-200 hover:border-[#0a332c]/50 rounded-2xl p-4 shadow-2xs transition-all cursor-pointer flex flex-col justify-between gap-3 group"
             >
-              {/* Left Color Strip (4px) */}
-              <div
-                className={`absolute left-0 top-0 bottom-0 w-[4px] rounded-l-2xl ${borderStripColor}`}
-              />
+              {/* Top Row: Name, Room Tag, Bed */}
+              <div>
+                <div className="flex justify-between items-start gap-2">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-[#0a332c]/10 text-[#0a332c] border border-[#0a332c]/20 flex items-center justify-center font-black text-[16px] group-hover:bg-[#0a332c] group-hover:text-white transition-colors">
+                      {tenant.name.charAt(0)}
+                    </div>
+                    <div>
+                      <h4 className="font-extrabold text-[15px] text-slate-900 group-hover:text-[#0a332c] transition-colors leading-tight">
+                        {tenant.name}
+                      </h4>
+                      <p className="text-[12px] text-slate-500 font-semibold mt-0.5">
+                        {tenant.phone}
+                      </p>
+                    </div>
+                  </div>
 
-              <div className="flex flex-col justify-center flex-1 pr-2">
-                <div className="flex items-center gap-2">
-                  <h2 className="text-[18px] sm:text-[19px] font-black text-white leading-snug group-hover:text-[#E2FF00] transition-colors">
-                    {tenant.name}
-                  </h2>
-                  {tenant.bedNumber && (
-                    <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-[#1f1f1f] text-[#aaaaaa] border border-[#333333]">
-                      Bed {tenant.bedNumber}
+                  {/* Room & Bed Pill */}
+                  <div className="bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-xl text-right">
+                    <span className="text-[12px] font-black text-slate-900 block leading-tight">
+                      Room {tenant.roomNumber}
+                    </span>
+                    <span className="text-[10px] font-extrabold text-emerald-800 bg-emerald-100/70 px-1.5 py-0.2 rounded inline-block mt-0.5">
+                      {tenant.bedNumber || 'B1'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Company / Group Badge if applicable */}
+                {tenant.isBulkContract && (
+                  <div className="mt-2.5 bg-amber-50 border border-amber-200/80 rounded-lg px-2.5 py-1.5 flex items-center justify-between text-[11px]">
+                    <div className="flex items-center gap-1.5 text-amber-900 font-bold">
+                      <span className="material-symbols-outlined text-[15px] text-amber-700">apartment</span>
+                      <span className="truncate max-w-[200px]">{tenant.companyName || tenant.groupName}</span>
+                    </div>
+                    <span className="text-[10px] font-extrabold text-amber-800 bg-amber-200/60 px-1.5 py-0.2 rounded">
+                      Month-End Bill
+                    </span>
+                  </div>
+                )}
+
+                {/* Document Attached Indicator */}
+                {(tenant.documentPhotoUrl || tenant.termsDocumentUrl) && (
+                  <div className="mt-2 flex items-center gap-2 text-[10px] font-bold text-slate-500">
+                    <span className="material-symbols-outlined text-[14px] text-blue-600">attach_file</span>
+                    <span>ID & Signed T&C Document on File</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Financial & Actions Row */}
+              <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2">
+                <div>
+                  <span className="text-[10px] text-slate-400 uppercase font-extrabold tracking-wider block">
+                    Monthly Rent
+                  </span>
+                  <span className="text-[14px] font-black text-slate-900">
+                    ₹{tenant.rentAmount.toLocaleString('en-IN')}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                  {/* Status Indicator */}
+                  {isPaid && (
+                    <span className="bg-emerald-50 text-emerald-800 border border-emerald-200 font-extrabold text-[11px] px-2.5 py-1 rounded-lg">
+                      Paid
                     </span>
                   )}
+                  {isCompanyBilled && (
+                    <span className="bg-amber-50 text-amber-900 border border-amber-200 font-extrabold text-[11px] px-2.5 py-1 rounded-lg">
+                      Co. Billed
+                    </span>
+                  )}
+                  {isPartial && (
+                    <button
+                      onClick={() => onCollectRent(tenant.id)}
+                      className="bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-[11px] px-2.5 py-1 rounded-lg shadow-2xs transition-colors"
+                    >
+                      Due ₹{tenant.balance}
+                    </button>
+                  )}
+                  {isOverdue && (
+                    <button
+                      onClick={() => onCollectRent(tenant.id)}
+                      className="bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-[11px] px-2.5 py-1 rounded-lg shadow-2xs transition-colors"
+                    >
+                      Collect ₹{tenant.balance || tenant.rentAmount}
+                    </button>
+                  )}
+
+                  {/* WhatsApp Quick Trigger */}
+                  <button
+                    onClick={() => onSendWhatsAppReminder(tenant)}
+                    className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 flex items-center justify-center transition-colors"
+                    title="Send WhatsApp Reminder"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">chat</span>
+                  </button>
                 </div>
-                <p className="text-[13px] text-[#888888] font-bold flex items-center gap-1.5 mt-0.5">
-                  <span className="material-symbols-outlined text-[15px] text-[#E2FF00]">bed</span>
-                  <span className="text-[#cccccc]">Room {tenant.roomNumber}</span>
-                  <span className="text-[#444444]">•</span>
-                  <span className="text-[#888888]">{tenant.phone}</span>
-                </p>
               </div>
-
-              <div className="flex flex-col items-end justify-center mr-2 shrink-0">
-                <span className="text-[18px] font-black text-white">
-                  ₹{tenant.rentAmount.toLocaleString('en-IN')}
-                </span>
-                {getStatusBadge(tenant.status, tenant.isActive)}
-              </div>
-
-              <span className="material-symbols-outlined text-[#666666] group-hover:text-[#E2FF00] text-[22px] shrink-0 transition-colors">
-                chevron_right
-              </span>
-            </article>
+            </div>
           );
         })}
+      </div>
 
-        {filteredTenants.length === 0 && (
-          <div className="text-center py-12 bg-[#121212] rounded-2xl border border-[#262626] my-4 p-6">
-            <span className="material-symbols-outlined text-[48px] text-[#888888] mb-2">
-              person_search
-            </span>
-            <h3 className="text-[18px] font-black text-white uppercase tracking-wider">No tenants found</h3>
-            <p className="text-[13px] text-[#888888] mt-1 font-medium">
-              {searchQuery ? `No results matching "${searchQuery}"` : 'No records in this tab.'}
-            </p>
-            <button
-              onClick={onAddTenant}
-              className="mt-4 px-5 py-2.5 bg-[#E2FF00] text-black font-black uppercase text-[13px] tracking-wider rounded-xl flex items-center gap-1.5 mx-auto hover:bg-[#d4f000]"
-            >
-              <span className="material-symbols-outlined text-[18px]">add</span>
-              Add New Tenant
-            </button>
-          </div>
-        )}
-      </section>
-
-      {/* Floating Action Button (FAB) */}
-      <button
-        id="fab-add-tenant"
-        aria-label="Add Tenant"
-        onClick={onAddTenant}
-        className="fixed bottom-[88px] right-4 w-[56px] h-[56px] bg-[#E2FF00] text-black rounded-2xl shadow-[0_0_25px_rgba(226,255,0,0.5)] hover:bg-[#d4f000] flex items-center justify-center active:scale-95 transition-all z-40"
-      >
-        <span className="material-symbols-outlined text-[28px] font-black">add</span>
-      </button>
+      {filteredTenants.length === 0 && (
+        <div className="bg-white border border-slate-200 rounded-2xl p-8 text-center flex flex-col items-center justify-center gap-2">
+          <span className="material-symbols-outlined text-[36px] text-slate-400">group_off</span>
+          <h4 className="font-extrabold text-[15px] text-slate-800">No residents match your search</h4>
+          <p className="text-[12px] text-slate-500">Try adjusting your category tabs or search query.</p>
+          <button
+            onClick={() => {
+              setSearchQuery('');
+              setActiveFilter('active');
+            }}
+            className="mt-2 text-[12px] font-bold text-[#0a332c] underline"
+          >
+            Show All Active Residents
+          </button>
+        </div>
+      )}
     </div>
   );
 };
-
