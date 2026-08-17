@@ -26,6 +26,7 @@ import {
 } from './data/initialData';
 import {
   saveStateToCloud,
+  saveStateToCloudImmediately,
   subscribeToCloudUpdates,
   fetchInitialCloudData,
   getDeviceId,
@@ -60,20 +61,38 @@ export default function App() {
   const [peopleFilter, setPeopleFilter] = useState<string | undefined>();
   const [roomsFilter, setRoomsFilter] = useState<string | undefined>('all');
 
+  // Check if demo data was already reset/cleared previously
+  const [hasResetDemoData, setHasResetDemoData] = useState<boolean>(() => {
+    return localStorage.getItem('agam_pg_demo_reset_done') === 'true';
+  });
+
   // Data State with LocalStorage
   const [rooms, setRooms] = useState<Room[]>(() => {
     const saved = localStorage.getItem('agam_pg_rooms');
-    return saved ? JSON.parse(saved) : INITIAL_ROOMS;
+    if (saved) return JSON.parse(saved);
+    if (localStorage.getItem('agam_pg_demo_reset_done') === 'true') {
+      return INITIAL_ROOMS.map((r) => ({
+        ...r,
+        occupied: 0,
+        occupants: [],
+        status: r.status === 'maintenance' ? 'maintenance' : 'empty',
+      }));
+    }
+    return INITIAL_ROOMS;
   });
 
   const [tenants, setTenants] = useState<Tenant[]>(() => {
     const saved = localStorage.getItem('agam_pg_tenants');
-    return saved ? JSON.parse(saved) : INITIAL_TENANTS;
+    if (saved) return JSON.parse(saved);
+    if (localStorage.getItem('agam_pg_demo_reset_done') === 'true') return [];
+    return INITIAL_TENANTS;
   });
 
   const [bulkGroups, setBulkGroups] = useState<BulkGroup[]>(() => {
     const saved = localStorage.getItem('agam_pg_bulk_groups');
-    return saved ? JSON.parse(saved) : INITIAL_BULK_GROUPS;
+    if (saved) return JSON.parse(saved);
+    if (localStorage.getItem('agam_pg_demo_reset_done') === 'true') return [];
+    return INITIAL_BULK_GROUPS;
   });
 
   const [whatsAppTemplates, setWhatsAppTemplates] = useState<WhatsAppTemplate[]>(() => {
@@ -83,22 +102,30 @@ export default function App() {
 
   const [rentPayments, setRentPayments] = useState<RentPayment[]>(() => {
     const saved = localStorage.getItem('agam_pg_payments');
-    return saved ? JSON.parse(saved) : INITIAL_RENT_PAYMENTS;
+    if (saved) return JSON.parse(saved);
+    if (localStorage.getItem('agam_pg_demo_reset_done') === 'true') return [];
+    return INITIAL_RENT_PAYMENTS;
   });
 
   const [expenses, setExpenses] = useState<Expense[]>(() => {
     const saved = localStorage.getItem('agam_pg_expenses');
-    return saved ? JSON.parse(saved) : INITIAL_EXPENSES;
+    if (saved) return JSON.parse(saved);
+    if (localStorage.getItem('agam_pg_demo_reset_done') === 'true') return [];
+    return INITIAL_EXPENSES;
   });
 
   const [incomes, setIncomes] = useState<Income[]>(() => {
     const saved = localStorage.getItem('agam_pg_incomes');
-    return saved ? JSON.parse(saved) : INITIAL_INCOMES;
+    if (saved) return JSON.parse(saved);
+    if (localStorage.getItem('agam_pg_demo_reset_done') === 'true') return [];
+    return INITIAL_INCOMES;
   });
 
   const [maintenanceTickets, setMaintenanceTickets] = useState<MaintenanceTicket[]>(() => {
     const saved = localStorage.getItem('agam_pg_tickets');
-    return saved ? JSON.parse(saved) : INITIAL_MAINTENANCE_TICKETS;
+    if (saved) return JSON.parse(saved);
+    if (localStorage.getItem('agam_pg_demo_reset_done') === 'true') return [];
+    return INITIAL_MAINTENANCE_TICKETS;
   });
 
   const [staffContacts, setStaffContacts] = useState<StaffContact[]>(() => {
@@ -480,20 +507,57 @@ export default function App() {
     }
   };
 
-  // Reset to default seed
-  const handleResetData = () => {
-    setRooms(INITIAL_ROOMS);
-    setTenants(INITIAL_TENANTS);
-    setBulkGroups(INITIAL_BULK_GROUPS);
-    setWhatsAppTemplates(INITIAL_WA_TEMPLATES);
-    setRentPayments(INITIAL_RENT_PAYMENTS);
-    setExpenses(INITIAL_EXPENSES);
-    setIncomes(INITIAL_INCOMES);
-    setMaintenanceTickets(INITIAL_MAINTENANCE_TICKETS);
+  // Reset / Clear Demo Data to start clean
+  const handleResetData = async () => {
+    // 1. Reset rooms to vacant state with 0 occupants
+    const clearedRooms: Room[] = INITIAL_ROOMS.map((r) => ({
+      ...r,
+      occupied: 0,
+      occupants: [],
+      status: r.status === 'maintenance' ? 'maintenance' : 'empty',
+    }));
+
+    // 2. Clear all state arrays
+    setRooms(clearedRooms);
+    setTenants([]);
+    setBulkGroups([]);
+    setRentPayments([]);
+    setExpenses([]);
+    setIncomes([]);
+    setMaintenanceTickets([]);
     setStaffContacts(INITIAL_STAFF_CONTACTS);
     setNotices(INITIAL_NOTICES);
-    localStorage.clear();
-    showToast('Reset all PG data to default state!');
+    setWhatsAppTemplates(INITIAL_WA_TEMPLATES);
+
+    // 3. Mark demo data as permanently reset
+    setHasResetDemoData(true);
+    localStorage.setItem('agam_pg_demo_reset_done', 'true');
+    localStorage.setItem('agam_pg_rooms', JSON.stringify(clearedRooms));
+    localStorage.setItem('agam_pg_tenants', JSON.stringify([]));
+    localStorage.setItem('agam_pg_bulk_groups', JSON.stringify([]));
+    localStorage.setItem('agam_pg_payments', JSON.stringify([]));
+    localStorage.setItem('agam_pg_expenses', JSON.stringify([]));
+    localStorage.setItem('agam_pg_incomes', JSON.stringify([]));
+    localStorage.setItem('agam_pg_tickets', JSON.stringify([]));
+    localStorage.setItem('agam_pg_staff', JSON.stringify(INITIAL_STAFF_CONTACTS));
+    localStorage.setItem('agam_pg_notices', JSON.stringify(INITIAL_NOTICES));
+    localStorage.setItem('agam_pg_wa_templates', JSON.stringify(INITIAL_WA_TEMPLATES));
+
+    // 4. Force immediate update to Firestore cloud so all devices sync the clean state
+    await saveStateToCloudImmediately({
+      rooms: clearedRooms,
+      tenants: [],
+      payments: [],
+      incomes: [],
+      expenses: [],
+      maintenanceTickets: [],
+      staffContacts: INITIAL_STAFF_CONTACTS,
+      bulkGroups: [],
+      notices: INITIAL_NOTICES,
+      whatsappTemplates: INITIAL_WA_TEMPLATES,
+    });
+
+    showToast('All demo data cleared! PG is ready for fresh real entries.');
   };
 
   // Add Tenant Handler
@@ -1006,6 +1070,7 @@ export default function App() {
         onClose={() => setIsDrawerOpen(false)}
         onNavigate={handleNavigate}
         onResetData={handleResetData}
+        showResetButton={!hasResetDemoData}
         onAddTenant={() => setIsAddTenantOpen(true)}
         onAddRoom={() => setIsAddRoomOpen(true)}
         onAddExpense={() => setIsAddExpenseOpen(true)}

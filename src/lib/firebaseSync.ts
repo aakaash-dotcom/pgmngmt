@@ -74,6 +74,21 @@ export const getDeviceId = (): string => {
 // Debounce timer for saving to cloud
 let saveTimeout: any = null;
 
+export const saveStateToCloudImmediately = async (data: Omit<AppSyncData, 'lastUpdated' | 'updatedByDeviceId'>) => {
+  if (saveTimeout) clearTimeout(saveTimeout);
+  try {
+    const payload: AppSyncData = {
+      ...data,
+      lastUpdated: new Date().toISOString(),
+      updatedByDeviceId: getDeviceId(),
+    };
+    await setDoc(GLOBAL_SYNC_DOC_REF, payload);
+    console.log('⚡ Cloud sync: Force-synced PG data to Firestore immediately.');
+  } catch (error) {
+    console.error('Cloud sync error saving state immediately:', error);
+  }
+};
+
 export const saveStateToCloud = (data: Omit<AppSyncData, 'lastUpdated' | 'updatedByDeviceId'>) => {
   if (saveTimeout) clearTimeout(saveTimeout);
 
@@ -84,7 +99,7 @@ export const saveStateToCloud = (data: Omit<AppSyncData, 'lastUpdated' | 'update
         lastUpdated: new Date().toISOString(),
         updatedByDeviceId: getDeviceId(),
       };
-      await setDoc(GLOBAL_SYNC_DOC_REF, payload, { merge: true });
+      await setDoc(GLOBAL_SYNC_DOC_REF, payload);
       console.log('⚡ Cloud sync: Successfully synchronized latest PG data to Firestore.');
     } catch (error) {
       console.error('Cloud sync error saving state:', error);
