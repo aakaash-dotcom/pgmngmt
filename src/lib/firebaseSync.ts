@@ -55,6 +55,7 @@ export interface AppSyncData {
   bulkGroups: BulkGroup[];
   notices: Notice[];
   whatsappTemplates: WhatsAppTemplate[];
+  isDemoReset?: boolean;
   lastUpdated?: string;
   updatedByDeviceId?: string;
 }
@@ -79,6 +80,7 @@ export const saveStateToCloudImmediately = async (data: Omit<AppSyncData, 'lastU
   try {
     const payload: AppSyncData = {
       ...data,
+      isDemoReset: true,
       lastUpdated: new Date().toISOString(),
       updatedByDeviceId: getDeviceId(),
     };
@@ -94,8 +96,10 @@ export const saveStateToCloud = (data: Omit<AppSyncData, 'lastUpdated' | 'update
 
   saveTimeout = setTimeout(async () => {
     try {
+      const isDemoResetDone = localStorage.getItem('agam_pg_demo_reset_done') === 'true';
       const payload: AppSyncData = {
         ...data,
+        isDemoReset: isDemoResetDone,
         lastUpdated: new Date().toISOString(),
         updatedByDeviceId: getDeviceId(),
       };

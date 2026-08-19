@@ -21,7 +21,7 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
   return (
     <nav
       id="bottom-nav-bar"
-      className="bg-white border-t border-slate-200 shadow-md fixed bottom-0 left-0 right-0 w-full h-[60px] z-40 flex justify-around items-center px-1 pb-safe"
+      className="bg-white/95 backdrop-blur-md border-t border-slate-200/90 shadow-[0_-4px_16px_rgba(0,0,0,0.06)] fixed bottom-0 left-0 right-0 w-full h-[60px] z-50 flex justify-around items-center px-1 pb-safe transform-gpu select-none"
     >
       {tabs.map((tab) => {
         const isActive = currentTab === tab.id;

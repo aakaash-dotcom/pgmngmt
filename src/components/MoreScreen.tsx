@@ -26,6 +26,7 @@ interface MoreScreenProps {
   onAddStaff?: (staff: Omit<StaffContact, 'id'>, editId?: string) => void;
   onDeleteStaff?: (id: string) => void;
   onRestoreBackup?: (backupData: any) => void;
+  onResetData?: () => void;
   onSyncCloudSql?: () => Promise<void>;
   isSyncingCloudSql?: boolean;
 }
@@ -44,6 +45,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
   onAddStaff,
   onDeleteStaff,
   onRestoreBackup,
+  onResetData,
   onSyncCloudSql,
   isSyncingCloudSql,
 }) => {
@@ -537,17 +539,25 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
             })}
 
             {filteredStaff.length === 0 && (
-              <div className="col-span-full bg-white p-8 rounded-2xl border border-slate-200 text-center flex flex-col items-center">
-                <span className="material-symbols-outlined text-[36px] text-slate-300 mb-2">contact_phone</span>
-                <p className="text-[14px] font-bold text-slate-700">No staff found matching "{searchStaff}"</p>
+              <div className="col-span-full bg-white p-8 rounded-2xl border border-slate-200 text-center flex flex-col items-center gap-2">
+                <span className="material-symbols-outlined text-[36px] text-slate-300">contact_phone</span>
+                <p className="text-[14px] font-bold text-slate-800">
+                  {staffContacts.length === 0 ? 'No staff contacts added yet' : `No staff found matching "${searchStaff}"`}
+                </p>
+                <p className="text-[12px] text-slate-500 max-w-sm">
+                  {staffContacts.length === 0
+                    ? 'Add cleaners, cooks, plumbers, electricians, and water tanker suppliers for 1-click calls and WhatsApp.'
+                    : 'Try clearing the search query or selecting "All Roles".'}
+                </p>
                 <button
                   onClick={() => {
                     setEditingStaff(null);
                     setIsStaffModalOpen(true);
                   }}
-                  className="mt-3 text-blue-600 font-bold text-[13px] hover:underline"
+                  className="mt-2 h-[38px] px-4 bg-[#0a332c] hover:bg-[#0f4239] text-white font-bold text-[12px] rounded-xl flex items-center gap-1.5 shadow-xs transition-colors"
                 >
-                  + Add New Contact
+                  <span className="material-symbols-outlined text-[16px]">person_add</span>
+                  <span>Add First Staff Contact</span>
                 </button>
               </div>
             )}
@@ -1096,6 +1106,39 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
                 </label>
               </div>
             </div>
+
+            {/* Clear All Demo Data / Clean Slate */}
+            {onResetData && (
+              <div className="pt-4 border-t border-rose-100 flex flex-col gap-3 bg-rose-50/40 p-3.5 rounded-2xl border">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <h3 className="text-[14px] font-extrabold text-rose-900 flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-rose-600 text-[18px]">delete_sweep</span>
+                      Clear Demo Data & Start Clean
+                    </h3>
+                    <p className="text-[12px] text-rose-700/80 font-medium mt-0.5">
+                      Removes all sample rooms, staff contacts, residents, and mock payment entries so you can input your real PG configuration.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => {
+                    if (
+                      window.confirm(
+                        'Are you sure you want to clear ALL demo data (rooms, staff numbers, residents, dues, and expenses)? This will give you a completely clean PG ready for your real data.'
+                      )
+                    ) {
+                      onResetData();
+                    }
+                  }}
+                  className="w-full sm:w-auto self-start py-2.5 px-4 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-[12px] font-bold flex items-center justify-center gap-1.5 shadow-xs transition-all"
+                >
+                  <span className="material-symbols-outlined text-[16px]">restart_alt</span>
+                  <span>Clear All Demo Data (Rooms, Staff & Tenants)</span>
+                </button>
+              </div>
+            )}
           </div>
         </section>
       )}

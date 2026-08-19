@@ -62,37 +62,42 @@ export default function App() {
   const [roomsFilter, setRoomsFilter] = useState<string | undefined>('all');
 
   // Check if demo data was already reset/cleared previously
-  const [hasResetDemoData, setHasResetDemoData] = useState<boolean>(() => {
-    return localStorage.getItem('agam_pg_demo_reset_done') === 'true';
-  });
-
-  // Data State with LocalStorage
-  const [rooms, setRooms] = useState<Room[]>(() => {
-    const saved = localStorage.getItem('agam_pg_rooms');
-    if (saved) return JSON.parse(saved);
-    if (localStorage.getItem('agam_pg_demo_reset_done') === 'true') {
-      return INITIAL_ROOMS.map((r) => ({
-        ...r,
-        occupied: 0,
-        occupants: [],
-        status: r.status === 'maintenance' ? 'maintenance' : 'empty',
-      }));
+  const isResetDone = () => {
+    try {
+      return localStorage.getItem('agam_pg_demo_reset_done') === 'true';
+    } catch {
+      return false;
     }
-    return INITIAL_ROOMS;
+  };
+
+  const [hasResetDemoData, setHasResetDemoData] = useState<boolean>(isResetDone);
+
+  // Data State with LocalStorage - respects demo reset flag
+  const [rooms, setRooms] = useState<Room[]>(() => {
+    if (isResetDone()) {
+      const saved = localStorage.getItem('agam_pg_rooms');
+      return saved ? JSON.parse(saved) : [];
+    }
+    const saved = localStorage.getItem('agam_pg_rooms');
+    return saved ? JSON.parse(saved) : INITIAL_ROOMS;
   });
 
   const [tenants, setTenants] = useState<Tenant[]>(() => {
+    if (isResetDone()) {
+      const saved = localStorage.getItem('agam_pg_tenants');
+      return saved ? JSON.parse(saved) : [];
+    }
     const saved = localStorage.getItem('agam_pg_tenants');
-    if (saved) return JSON.parse(saved);
-    if (localStorage.getItem('agam_pg_demo_reset_done') === 'true') return [];
-    return INITIAL_TENANTS;
+    return saved ? JSON.parse(saved) : INITIAL_TENANTS;
   });
 
   const [bulkGroups, setBulkGroups] = useState<BulkGroup[]>(() => {
+    if (isResetDone()) {
+      const saved = localStorage.getItem('agam_pg_bulk_groups');
+      return saved ? JSON.parse(saved) : [];
+    }
     const saved = localStorage.getItem('agam_pg_bulk_groups');
-    if (saved) return JSON.parse(saved);
-    if (localStorage.getItem('agam_pg_demo_reset_done') === 'true') return [];
-    return INITIAL_BULK_GROUPS;
+    return saved ? JSON.parse(saved) : INITIAL_BULK_GROUPS;
   });
 
   const [whatsAppTemplates, setWhatsAppTemplates] = useState<WhatsAppTemplate[]>(() => {
@@ -101,39 +106,55 @@ export default function App() {
   });
 
   const [rentPayments, setRentPayments] = useState<RentPayment[]>(() => {
+    if (isResetDone()) {
+      const saved = localStorage.getItem('agam_pg_payments');
+      return saved ? JSON.parse(saved) : [];
+    }
     const saved = localStorage.getItem('agam_pg_payments');
-    if (saved) return JSON.parse(saved);
-    if (localStorage.getItem('agam_pg_demo_reset_done') === 'true') return [];
-    return INITIAL_RENT_PAYMENTS;
+    return saved ? JSON.parse(saved) : INITIAL_RENT_PAYMENTS;
   });
 
   const [expenses, setExpenses] = useState<Expense[]>(() => {
+    if (isResetDone()) {
+      const saved = localStorage.getItem('agam_pg_expenses');
+      return saved ? JSON.parse(saved) : [];
+    }
     const saved = localStorage.getItem('agam_pg_expenses');
-    if (saved) return JSON.parse(saved);
-    if (localStorage.getItem('agam_pg_demo_reset_done') === 'true') return [];
-    return INITIAL_EXPENSES;
+    return saved ? JSON.parse(saved) : INITIAL_EXPENSES;
   });
 
   const [incomes, setIncomes] = useState<Income[]>(() => {
+    if (isResetDone()) {
+      const saved = localStorage.getItem('agam_pg_incomes');
+      return saved ? JSON.parse(saved) : [];
+    }
     const saved = localStorage.getItem('agam_pg_incomes');
-    if (saved) return JSON.parse(saved);
-    if (localStorage.getItem('agam_pg_demo_reset_done') === 'true') return [];
-    return INITIAL_INCOMES;
+    return saved ? JSON.parse(saved) : INITIAL_INCOMES;
   });
 
   const [maintenanceTickets, setMaintenanceTickets] = useState<MaintenanceTicket[]>(() => {
+    if (isResetDone()) {
+      const saved = localStorage.getItem('agam_pg_tickets');
+      return saved ? JSON.parse(saved) : [];
+    }
     const saved = localStorage.getItem('agam_pg_tickets');
-    if (saved) return JSON.parse(saved);
-    if (localStorage.getItem('agam_pg_demo_reset_done') === 'true') return [];
-    return INITIAL_MAINTENANCE_TICKETS;
+    return saved ? JSON.parse(saved) : INITIAL_MAINTENANCE_TICKETS;
   });
 
   const [staffContacts, setStaffContacts] = useState<StaffContact[]>(() => {
+    if (isResetDone()) {
+      const saved = localStorage.getItem('agam_pg_staff');
+      return saved ? JSON.parse(saved) : [];
+    }
     const saved = localStorage.getItem('agam_pg_staff');
     return saved ? JSON.parse(saved) : INITIAL_STAFF_CONTACTS;
   });
 
   const [notices, setNotices] = useState<Notice[]>(() => {
+    if (isResetDone()) {
+      const saved = localStorage.getItem('agam_pg_notices');
+      return saved ? JSON.parse(saved) : [];
+    }
     const saved = localStorage.getItem('agam_pg_notices');
     return saved ? JSON.parse(saved) : INITIAL_NOTICES;
   });
@@ -191,7 +212,50 @@ export default function App() {
     // Fetch initial data once on mount
     fetchInitialCloudData().then((cloudData) => {
       if (!isMounted || !cloudData) return;
-      if (cloudData.rooms && cloudData.rooms.length > 0) {
+
+      const localResetDone = localStorage.getItem('agam_pg_demo_reset_done') === 'true';
+
+      // If either cloud or local has explicit demo reset recorded:
+      if (cloudData.isDemoReset || localResetDone) {
+        isApplyingRemoteSyncRef.current = true;
+        setHasResetDemoData(true);
+        localStorage.setItem('agam_pg_demo_reset_done', 'true');
+
+        if (!cloudData.isDemoReset && localResetDone) {
+          // Cloud had older unreset data, force override cloud with local clean state
+          saveStateToCloudImmediately({
+            rooms: JSON.parse(localStorage.getItem('agam_pg_rooms') || '[]'),
+            tenants: JSON.parse(localStorage.getItem('agam_pg_tenants') || '[]'),
+            payments: JSON.parse(localStorage.getItem('agam_pg_payments') || '[]'),
+            incomes: JSON.parse(localStorage.getItem('agam_pg_incomes') || '[]'),
+            expenses: JSON.parse(localStorage.getItem('agam_pg_expenses') || '[]'),
+            maintenanceTickets: JSON.parse(localStorage.getItem('agam_pg_tickets') || '[]'),
+            staffContacts: JSON.parse(localStorage.getItem('agam_pg_staff') || '[]'),
+            bulkGroups: JSON.parse(localStorage.getItem('agam_pg_bulk_groups') || '[]'),
+            notices: JSON.parse(localStorage.getItem('agam_pg_notices') || '[]'),
+            whatsappTemplates: INITIAL_WA_TEMPLATES,
+          });
+        } else {
+          // Cloud is reset, adopt clean state
+          setRooms(cloudData.rooms || []);
+          setTenants(cloudData.tenants || []);
+          setRentPayments(cloudData.payments || []);
+          setIncomes(cloudData.incomes || []);
+          setExpenses(cloudData.expenses || []);
+          setStaffContacts(cloudData.staffContacts || []);
+          setBulkGroups(cloudData.bulkGroups || []);
+          setMaintenanceTickets(cloudData.maintenanceTickets || []);
+          setNotices(cloudData.notices || []);
+          setWhatsAppTemplates(cloudData.whatsappTemplates || INITIAL_WA_TEMPLATES);
+        }
+
+        setTimeout(() => {
+          isApplyingRemoteSyncRef.current = false;
+        }, 800);
+        return;
+      }
+
+      if (cloudData.rooms && Array.isArray(cloudData.rooms)) {
         isApplyingRemoteSyncRef.current = true;
         setRooms(cloudData.rooms);
         if (cloudData.tenants) setTenants(cloudData.tenants);
@@ -217,16 +281,22 @@ export default function App() {
       if (remoteData.updatedByDeviceId && remoteData.updatedByDeviceId !== currentDeviceId) {
         console.log('⚡ Received live cloud update from another device!');
         isApplyingRemoteSyncRef.current = true;
-        if (remoteData.rooms) setRooms(remoteData.rooms);
-        if (remoteData.tenants) setTenants(remoteData.tenants);
-        if (remoteData.payments) setRentPayments(remoteData.payments);
-        if (remoteData.incomes) setIncomes(remoteData.incomes);
-        if (remoteData.expenses) setExpenses(remoteData.expenses);
-        if (remoteData.staffContacts) setStaffContacts(remoteData.staffContacts);
-        if (remoteData.bulkGroups) setBulkGroups(remoteData.bulkGroups);
-        if (remoteData.maintenanceTickets) setMaintenanceTickets(remoteData.maintenanceTickets);
-        if (remoteData.notices) setNotices(remoteData.notices);
-        if (remoteData.whatsappTemplates) setWhatsAppTemplates(remoteData.whatsappTemplates);
+
+        if (remoteData.isDemoReset) {
+          setHasResetDemoData(true);
+          localStorage.setItem('agam_pg_demo_reset_done', 'true');
+        }
+
+        if (remoteData.rooms !== undefined) setRooms(remoteData.rooms);
+        if (remoteData.tenants !== undefined) setTenants(remoteData.tenants);
+        if (remoteData.payments !== undefined) setRentPayments(remoteData.payments);
+        if (remoteData.incomes !== undefined) setIncomes(remoteData.incomes);
+        if (remoteData.expenses !== undefined) setExpenses(remoteData.expenses);
+        if (remoteData.staffContacts !== undefined) setStaffContacts(remoteData.staffContacts);
+        if (remoteData.bulkGroups !== undefined) setBulkGroups(remoteData.bulkGroups);
+        if (remoteData.maintenanceTickets !== undefined) setMaintenanceTickets(remoteData.maintenanceTickets);
+        if (remoteData.notices !== undefined) setNotices(remoteData.notices);
+        if (remoteData.whatsappTemplates !== undefined) setWhatsAppTemplates(remoteData.whatsappTemplates);
 
         setCloudSyncStatus('synced');
         setLastSyncTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
@@ -296,6 +366,7 @@ export default function App() {
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [selectedRoomForEdit, setSelectedRoomForEdit] = useState<Room | null>(null);
   const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
+  const [selectedTenantForCollect, setSelectedTenantForCollect] = useState<Tenant | null>(null);
   const [selectedPaymentForCollect, setSelectedPaymentForCollect] = useState<RentPayment | null>(null);
   const [alertType, setAlertType] = useState<'overdue' | 'stayEnding' | 'refundPending'>('overdue');
 
@@ -509,55 +580,53 @@ export default function App() {
 
   // Reset / Clear Demo Data to start clean
   const handleResetData = async () => {
-    // 1. Reset rooms to vacant state with 0 occupants
-    const clearedRooms: Room[] = INITIAL_ROOMS.map((r) => ({
-      ...r,
-      occupied: 0,
-      occupants: [],
-      status: r.status === 'maintenance' ? 'maintenance' : 'empty',
-    }));
+    isApplyingRemoteSyncRef.current = true;
 
-    // 2. Clear all state arrays
-    setRooms(clearedRooms);
+    // Clear all state arrays to completely empty
+    setRooms([]);
     setTenants([]);
     setBulkGroups([]);
     setRentPayments([]);
     setExpenses([]);
     setIncomes([]);
     setMaintenanceTickets([]);
-    setStaffContacts(INITIAL_STAFF_CONTACTS);
-    setNotices(INITIAL_NOTICES);
+    setStaffContacts([]);
+    setNotices([]);
     setWhatsAppTemplates(INITIAL_WA_TEMPLATES);
 
-    // 3. Mark demo data as permanently reset
+    // Mark demo data as permanently reset in local storage
     setHasResetDemoData(true);
     localStorage.setItem('agam_pg_demo_reset_done', 'true');
-    localStorage.setItem('agam_pg_rooms', JSON.stringify(clearedRooms));
+    localStorage.setItem('agam_pg_rooms', JSON.stringify([]));
     localStorage.setItem('agam_pg_tenants', JSON.stringify([]));
     localStorage.setItem('agam_pg_bulk_groups', JSON.stringify([]));
     localStorage.setItem('agam_pg_payments', JSON.stringify([]));
     localStorage.setItem('agam_pg_expenses', JSON.stringify([]));
     localStorage.setItem('agam_pg_incomes', JSON.stringify([]));
     localStorage.setItem('agam_pg_tickets', JSON.stringify([]));
-    localStorage.setItem('agam_pg_staff', JSON.stringify(INITIAL_STAFF_CONTACTS));
-    localStorage.setItem('agam_pg_notices', JSON.stringify(INITIAL_NOTICES));
+    localStorage.setItem('agam_pg_staff', JSON.stringify([]));
+    localStorage.setItem('agam_pg_notices', JSON.stringify([]));
     localStorage.setItem('agam_pg_wa_templates', JSON.stringify(INITIAL_WA_TEMPLATES));
 
-    // 4. Force immediate update to Firestore cloud so all devices sync the clean state
+    // Force immediate update to Firestore cloud with isDemoReset=true so all devices sync the clean state
     await saveStateToCloudImmediately({
-      rooms: clearedRooms,
+      rooms: [],
       tenants: [],
       payments: [],
       incomes: [],
       expenses: [],
       maintenanceTickets: [],
-      staffContacts: INITIAL_STAFF_CONTACTS,
+      staffContacts: [],
       bulkGroups: [],
-      notices: INITIAL_NOTICES,
+      notices: [],
       whatsappTemplates: INITIAL_WA_TEMPLATES,
     });
 
-    showToast('All demo data cleared! PG is ready for fresh real entries.');
+    setTimeout(() => {
+      isApplyingRemoteSyncRef.current = false;
+    }, 1200);
+
+    showToast('All demo rooms, staff directory, residents, and ledgers cleared! Ready for real PG data.');
   };
 
   // Add Tenant Handler
@@ -927,7 +996,7 @@ export default function App() {
   };
 
   return (
-    <div className="bg-slate-100/70 min-h-screen text-slate-900 font-sans selection:bg-emerald-600 selection:text-white pb-20">
+    <div className="bg-slate-100/70 min-h-screen text-slate-900 font-sans selection:bg-emerald-600 selection:text-white pb-[80px]">
       {/* Top App Bar */}
       <TopAppBar
         currentTab={currentTab}
@@ -937,7 +1006,7 @@ export default function App() {
       />
 
       {/* Main Canvas Area */}
-      <main className="pt-[60px] min-h-[calc(100vh-130px)]">
+      <main className="pt-[60px] pb-6 min-h-[calc(100vh-140px)]">
         {currentTab === 'home' && (
           <HomeScreen
             rooms={rooms}
@@ -949,6 +1018,7 @@ export default function App() {
             onAddTenant={() => setIsAddTenantOpen(true)}
             onAddRoom={() => setIsAddRoomOpen(true)}
             onCollectRent={() => {
+              setSelectedTenantForCollect(null);
               setSelectedPaymentForCollect(null);
               setIsCollectRentOpen(true);
             }}
@@ -992,7 +1062,7 @@ export default function App() {
             onCollectRent={(tenantId) => {
               const t = tenants.find((item) => item.id === tenantId);
               if (t) {
-                setSelectedTenant(t);
+                setSelectedTenantForCollect(t);
                 setSelectedPaymentForCollect(null);
                 setIsCollectRentOpen(true);
               }
@@ -1010,6 +1080,10 @@ export default function App() {
             expenses={expenses}
             incomes={incomes}
             onMarkPaid={(payment) => {
+              const matchedTenant = tenants.find(
+                (item) => item.id === payment.tenantId || item.name.toLowerCase() === payment.tenantName.toLowerCase()
+              );
+              setSelectedTenantForCollect(matchedTenant || null);
               setSelectedPaymentForCollect(payment);
               setIsCollectRentOpen(true);
             }}
@@ -1040,6 +1114,7 @@ export default function App() {
             onAddStaff={handleAddStaff}
             onDeleteStaff={handleDeleteStaff}
             onRestoreBackup={handleRestoreBackup}
+            onResetData={handleResetData}
             onSyncCloudSql={handleSyncCloudSql}
             isSyncingCloudSql={isSyncingCloudSql}
           />
@@ -1090,8 +1165,13 @@ export default function App() {
 
       <CollectRentModal
         isOpen={isCollectRentOpen}
-        onClose={() => setIsCollectRentOpen(false)}
+        onClose={() => {
+          setIsCollectRentOpen(false);
+          setSelectedTenantForCollect(null);
+          setSelectedPaymentForCollect(null);
+        }}
         tenants={tenants}
+        initialTenantId={selectedTenantForCollect?.id}
         initialPayment={selectedPaymentForCollect}
         onConfirmPayment={handleConfirmPayment}
       />
@@ -1135,6 +1215,7 @@ export default function App() {
         templates={whatsAppTemplates}
         onCollectRent={(tenant) => {
           setSelectedTenant(tenant);
+          setSelectedTenantForCollect(tenant);
           setSelectedPaymentForCollect(null);
           setIsCollectRentOpen(true);
         }}
@@ -1173,6 +1254,7 @@ export default function App() {
         }}
         onCollectRent={(t) => {
           setSelectedTenant(t);
+          setSelectedTenantForCollect(t);
           setSelectedPaymentForCollect(null);
           setIsCollectRentOpen(true);
         }}

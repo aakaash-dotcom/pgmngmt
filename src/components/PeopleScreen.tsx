@@ -313,17 +313,34 @@ export const PeopleScreen: React.FC<PeopleScreenProps> = ({
       {filteredTenants.length === 0 && (
         <div className="bg-white border border-slate-200 rounded-2xl p-8 text-center flex flex-col items-center justify-center gap-2">
           <span className="material-symbols-outlined text-[36px] text-slate-400">group_off</span>
-          <h4 className="font-extrabold text-[15px] text-slate-800">No residents match your search</h4>
-          <p className="text-[12px] text-slate-500">Try adjusting your category tabs or search query.</p>
-          <button
-            onClick={() => {
-              setSearchQuery('');
-              setActiveFilter('active');
-            }}
-            className="mt-2 text-[12px] font-bold text-[#0a332c] underline"
-          >
-            Show All Active Residents
-          </button>
+          <h4 className="font-extrabold text-[15px] text-slate-800">
+            {tenants.length === 0 ? 'No residents added yet' : 'No residents match your search'}
+          </h4>
+          <p className="text-[12px] text-slate-500 max-w-sm">
+            {tenants.length === 0
+              ? 'Start checking in residents with room allocations, rent amounts, deposits, and ID proofs.'
+              : 'Try adjusting your category tabs or clearing the search query.'}
+          </p>
+          {tenants.length === 0 ? (
+            <button
+              onClick={onAddTenant}
+              className="mt-2 h-[38px] px-4 bg-[#0a332c] hover:bg-[#0f4239] text-white font-extrabold rounded-xl text-[12px] flex items-center gap-1.5 shadow-xs transition-colors"
+            >
+              <span className="material-symbols-outlined text-[16px]">person_add</span>
+              <span>Add Your First Tenant</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => {
+                setSearchQuery('');
+                setActiveFilter('active');
+                setRoomFilter('all');
+              }}
+              className="mt-2 text-[12px] font-bold text-[#0a332c] underline"
+            >
+              Show All Active Residents
+            </button>
+          )}
         </div>
       )}
     </div>

@@ -233,20 +233,18 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
 
         {/* Footer actions */}
         <div className="p-4 border-t border-slate-200 bg-slate-50 flex flex-col gap-2">
-          {showResetButton && (
-            <button
-              onClick={() => {
-                if (window.confirm('Clear all demo residents, payments, expenses, and records to start with a clean PG? This action cannot be undone.')) {
-                  onResetData();
-                  onClose();
-                }
-              }}
-              className="text-[12px] text-rose-600 hover:bg-rose-50 p-2 rounded-xl text-center font-bold transition-colors flex items-center justify-center gap-1.5 border border-rose-200/60 bg-white shadow-2xs"
-            >
-              <span className="material-symbols-outlined text-[16px]">restart_alt</span>
-              <span>Reset & Clear Demo Data</span>
-            </button>
-          )}
+          <button
+            onClick={() => {
+              if (window.confirm('Clear all demo residents, rooms, staff, payments, expenses, and records to start with a clean PG? This action cannot be undone.')) {
+                onResetData();
+                onClose();
+              }
+            }}
+            className="text-[12px] text-rose-600 hover:bg-rose-50 p-2 rounded-xl text-center font-bold transition-colors flex items-center justify-center gap-1.5 border border-rose-200/60 bg-white shadow-2xs"
+          >
+            <span className="material-symbols-outlined text-[16px]">restart_alt</span>
+            <span>Reset & Clear Demo Data</span>
+          </button>
           <div className="text-[10px] text-center text-slate-400 font-medium">
             {PG_NAME} • Official Management System
           </div>
