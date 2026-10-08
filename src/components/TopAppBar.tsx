@@ -5,7 +5,7 @@ import { AgamLogo } from './AgamLogo';
 interface TopAppBarProps {
   currentTab: TabType;
   onOpenSideDrawer: () => void;
-  cloudSyncStatus?: 'synced' | 'syncing' | 'offline';
+  cloudSyncStatus?: 'synced' | 'syncing' | 'offline' | 'error';
   lastSyncTime?: string;
 }
 
@@ -49,16 +49,46 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
 
         {/* Right Side: Cloud Sync Indicator & Page Badge */}
         <div className="flex items-center gap-2">
-          <div 
-            title={`Multi-Device Cloud Sync: ${cloudSyncStatus === 'syncing' ? 'Syncing to cloud...' : 'Live Synced across devices'} (${lastSyncTime})`}
-            className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-colors ${
-              cloudSyncStatus === 'syncing' 
+          <div
+            title={`Cloud Sync: ${
+              cloudSyncStatus === 'syncing'
+                ? 'Syncing to cloud...'
+                : cloudSyncStatus === 'error'
+                ? 'Sync failed — changes are saved on this device and will retry'
+                : cloudSyncStatus === 'offline'
+                ? 'You are offline — changes will sync when you reconnect'
+                : 'Live synced across devices'
+            } (${lastSyncTime})`}
+            className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-bold border transition-colors ${
+              cloudSyncStatus === 'syncing'
                 ? 'bg-amber-50 text-amber-800 border-amber-200 animate-pulse'
+                : cloudSyncStatus === 'error'
+                ? 'bg-rose-50 text-rose-800 border-rose-200'
+                : cloudSyncStatus === 'offline'
+                ? 'bg-slate-100 text-slate-600 border-slate-300'
                 : 'bg-emerald-50 text-emerald-800 border-emerald-200/80'
             }`}
           >
-            <span className={`w-2 h-2 rounded-full ${cloudSyncStatus === 'syncing' ? 'bg-amber-500' : 'bg-emerald-600'}`} />
-            <span>{cloudSyncStatus === 'syncing' ? 'Syncing...' : 'Cloud Synced'}</span>
+            <span
+              className={`w-2 h-2 rounded-full ${
+                cloudSyncStatus === 'syncing'
+                  ? 'bg-amber-500'
+                  : cloudSyncStatus === 'error'
+                  ? 'bg-rose-600'
+                  : cloudSyncStatus === 'offline'
+                  ? 'bg-slate-400'
+                  : 'bg-emerald-600'
+              }`}
+            />
+            <span className="hidden md:inline">
+              {cloudSyncStatus === 'syncing'
+                ? 'Syncing...'
+                : cloudSyncStatus === 'error'
+                ? 'Sync Failed'
+                : cloudSyncStatus === 'offline'
+                ? 'Offline'
+                : 'Cloud Synced'}
+            </span>
           </div>
 
           <div

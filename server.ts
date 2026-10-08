@@ -1,15 +1,11 @@
 import express from "express";
 import path from "path";
-import { fileURLToPath } from "url";
 import { createServer as createViteServer } from "vite";
 import dotenv from "dotenv";
 import { requireAuth, AuthRequest } from "./src/middleware/auth.ts";
 import { getOrCreateUser, getUserPgData, saveUserPgData } from "./src/db/users.ts";
 
 dotenv.config();
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 async function startServer() {
   const app = express();
@@ -31,7 +27,9 @@ async function startServer() {
     try {
       const uid = req.user?.uid;
       const email = req.user?.email || "";
-      const name = (req.user as any)?.name || "";
+      // The client may send its known display name in the body (Google access
+      // tokens do not always carry a name claim).
+      const name = req.body?.name || (req.user as any)?.name || "";
 
       if (!uid) {
         return res.status(400).json({ error: "Missing user UID in token" });
@@ -62,7 +60,7 @@ async function startServer() {
   });
 
   // Save/Sync user PG Data to Cloud SQL
-  app.post("/api/pg/data", requireAuth, async (req: AuthRequest, res) => {
+  const savePgDataHandler = async (req: AuthRequest, res: any) => {
     try {
       const uid = req.user?.uid;
       if (!uid) {
@@ -75,7 +73,12 @@ async function startServer() {
       console.error("Save PG data error:", error);
       res.status(500).json({ error: error.message || "Failed to save PG data to Cloud SQL" });
     }
-  });
+  };
+
+  // Canonical route
+  app.post("/api/pg/data", requireAuth, savePgDataHandler);
+  // Alias used by the app client (kept so existing clients keep working)
+  app.post("/api/cloudsql/save", requireAuth, savePgDataHandler);
 
   // Google Apps Script Proxy: Uploads captured tenant photos directly to user's Google Drive without client OAuth/CORS issues!
   app.post("/api/drive/upload-appscript", async (req, res) => {

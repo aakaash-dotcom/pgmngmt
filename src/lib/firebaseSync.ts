@@ -77,6 +77,21 @@ export const getDeviceId = (): string => {
 let saveTimeout: any = null;
 let pendingSaveData: AppSyncData | null = null;
 
+// UI callbacks so the app can show an honest sync status (synced / error)
+export interface SyncCallbacks {
+  onSuccess?: () => void;
+  onError?: (error: any) => void;
+}
+
+let syncCallbacks: SyncCallbacks = {};
+
+export const setSyncCallbacks = (callbacks: SyncCallbacks | null) => {
+  syncCallbacks = callbacks || {};
+};
+
+const isDemoResetDone = () =>
+  typeof window !== 'undefined' ? localStorage.getItem('agam_pg_demo_reset_done') === 'true' : true;
+
 export const saveStateToCloudImmediately = async (data: Omit<AppSyncData, 'lastUpdated' | 'updatedByDeviceId'>) => {
   if (saveTimeout) clearTimeout(saveTimeout);
   pendingSaveData = null;
@@ -84,7 +99,7 @@ export const saveStateToCloudImmediately = async (data: Omit<AppSyncData, 'lastU
     const timestamp = new Date().toISOString();
     const payload: AppSyncData = {
       ...data,
-      isDemoReset: true,
+      isDemoReset: isDemoResetDone(),
       lastUpdated: timestamp,
       updatedByDeviceId: getDeviceId(),
     };
@@ -93,18 +108,19 @@ export const saveStateToCloudImmediately = async (data: Omit<AppSyncData, 'lastU
     }
     await setDoc(GLOBAL_SYNC_DOC_REF, payload);
     console.log('⚡ Cloud sync: Force-synced PG data to Firestore immediately at', timestamp);
+    syncCallbacks.onSuccess?.();
   } catch (error) {
     console.error('Cloud sync error saving state immediately:', error);
+    syncCallbacks.onError?.(error);
   }
 };
 
 export const saveStateToCloud = (data: Omit<AppSyncData, 'lastUpdated' | 'updatedByDeviceId'>) => {
   const timestamp = new Date().toISOString();
-  const isDemoResetDone = typeof window !== 'undefined' ? localStorage.getItem('agam_pg_demo_reset_done') === 'true' : true;
-  
+
   const payload: AppSyncData = {
     ...data,
-    isDemoReset: isDemoResetDone,
+    isDemoReset: isDemoResetDone(),
     lastUpdated: timestamp,
     updatedByDeviceId: getDeviceId(),
   };
@@ -123,8 +139,10 @@ export const saveStateToCloud = (data: Omit<AppSyncData, 'lastUpdated' | 'update
     try {
       await setDoc(GLOBAL_SYNC_DOC_REF, toSave);
       console.log('⚡ Cloud sync: Successfully synchronized latest PG data to Firestore.');
+      syncCallbacks.onSuccess?.();
     } catch (error) {
       console.error('Cloud sync error saving state:', error);
+      syncCallbacks.onError?.(error);
     }
   }, 250); // 250ms fast debounce
 };

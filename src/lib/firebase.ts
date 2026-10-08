@@ -10,6 +10,9 @@ export interface WorkspaceUser {
 }
 
 // Scopes for Google Workspace APIs
+// NOTE: userinfo.email + userinfo.profile are required so the signed-in user's
+// real Google account id (sub) and email can be resolved — without them every
+// device would be identified as the same fallback "workspace-user".
 export const WORKSPACE_SCOPES = [
   'https://www.googleapis.com/auth/spreadsheets',
   'https://www.googleapis.com/auth/spreadsheets.readonly',
@@ -17,6 +20,8 @@ export const WORKSPACE_SCOPES = [
   'https://www.googleapis.com/auth/drive.readonly',
   'https://www.googleapis.com/auth/contacts.readonly',
   'https://www.googleapis.com/auth/calendar.events',
+  'https://www.googleapis.com/auth/userinfo.email',
+  'https://www.googleapis.com/auth/userinfo.profile',
 ];
 
 const SCOPES_STRING = WORKSPACE_SCOPES.join(' ');

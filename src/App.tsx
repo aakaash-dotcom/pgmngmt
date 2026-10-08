@@ -27,11 +27,14 @@ import {
   subscribeToCloudUpdates,
   fetchInitialCloudData,
   getDeviceId,
+  setSyncCallbacks,
   AppSyncData,
   mergeUniqueById,
 } from './lib/firebaseSync';
 
 import { TopAppBar } from './components/TopAppBar';
+import { AgamLogo } from './components/AgamLogo';
+import { ConfirmDialog } from './components/ConfirmDialog';
 import { BottomNavBar } from './components/BottomNavBar';
 import { SideDrawer } from './components/SideDrawer';
 import { HomeScreen } from './components/HomeScreen';
@@ -51,6 +54,21 @@ import { EditRoomModal } from './components/modals/EditRoomModal';
 import { ActionRequiredModal } from './components/modals/ActionRequiredModal';
 import { BulkGroupManagerModal } from './components/modals/BulkGroupManagerModal';
 import { WhatsAppTemplateModal } from './components/modals/WhatsAppTemplateModal';
+
+// Legacy demo/mock record IDs that must never revive from old cloud backups
+const LEGACY_MOCK_IDS = new Set([
+  'staff-1', 'staff-2', 'staff-3', 'staff-4', 'staff-5',
+  'r-101', 'r-102', 'r-103', 'r-104',
+  't-1', 't-2', 't-3',
+  'exp-1', 'exp-2', 'exp-3',
+  'inc-1', 'inc-2',
+  'mt-1', 'mt-2',
+  'bg-1', 'bg-2'
+]);
+
+// Helper to strip any legacy mock/demo records so they never revive
+const filterLegacy = <T extends { id?: string }>(arr: T[] = []): T[] =>
+  arr.filter((item) => item && item.id && !LEGACY_MOCK_IDS.has(item.id));
 
 export default function App() {
   // Navigation State
@@ -198,29 +216,29 @@ export default function App() {
   // Flag to avoid uploading cloud data back when updating from remote
   const isHydratedRef = useRef(false);
   const isApplyingRemoteSyncRef = useRef(false);
-  const [cloudSyncStatus, setCloudSyncStatus] = useState<'synced' | 'syncing' | 'offline'>('synced');
+  const [cloudSyncStatus, setCloudSyncStatus] = useState<'synced' | 'syncing' | 'offline' | 'error'>('synced');
   const [lastSyncTime, setLastSyncTime] = useState<string>('Just now');
+
+  // Boot loading: show a splash until the first cloud/local hydration completes
+  const [isBootLoading, setIsBootLoading] = useState(true);
+  // Timestamp of the last remote snapshot applied (last-writer-wins sync)
+  const lastAppliedRemoteUpdateRef = useRef<string | null>(null);
+  // Always-current snapshot of the full app state (for reconnect re-sync)
+  const latestStateRef = useRef<AppSyncData | null>(null);
+  // Throttle for sync-error toasts so repeated failures don't spam
+  const lastSyncErrorToastRef = useRef<number>(0);
+  // True when local changes exist that have not reached the cloud yet
+  // (e.g. edits made while offline) — triggers a reconcile on reconnect
+  const hasUnsyncedChangesRef = useRef(false);
 
   // 1. Initial Load & Real-Time Reconciled Subscription
   useEffect(() => {
     let isMounted = true;
-
-    // Helper to strip any legacy mock/demo records so they never revive
-    const filterLegacy = <T extends { id?: string }>(arr: T[] = []): T[] => {
-      const legacyMockIds = new Set([
-        'staff-1', 'staff-2', 'staff-3', 'staff-4', 'staff-5',
-        'r-101', 'r-102', 'r-103', 'r-104',
-        't-1', 't-2', 't-3',
-        'exp-1', 'exp-2', 'exp-3',
-        'inc-1', 'inc-2',
-        'mt-1', 'mt-2',
-        'bg-1', 'bg-2'
-      ]);
-      return arr.filter((item) => item && item.id && !legacyMockIds.has(item.id));
-    };
+    let hydratedCloudData: AppSyncData | null = null;
 
     // Fetch initial data once on mount
     fetchInitialCloudData().then((cloudData) => {
+      hydratedCloudData = cloudData;
       if (!isMounted) return;
 
       const isCleanSlateDone = localStorage.getItem('agam_pg_v3_clean_slate') === 'true';
@@ -362,90 +380,80 @@ export default function App() {
       setTimeout(() => {
         isApplyingRemoteSyncRef.current = false;
       }, 500);
+    }).finally(() => {
+      // Hydration settled (success or early return) — stop the boot splash
+      if (isMounted) {
+        setIsBootLoading(false);
+        if (hydratedCloudData?.lastUpdated) {
+          lastAppliedRemoteUpdateRef.current = hydratedCloudData.lastUpdated;
+        }
+      }
+    }).catch((err) => {
+      console.error('Initial cloud hydration failed:', err);
+      if (isMounted) setIsBootLoading(false);
     });
 
     // Subscribe to multi-device real-time updates
     const unsubscribe = subscribeToCloudUpdates((remoteData) => {
       if (!isMounted || !remoteData) return;
       const currentDeviceId = getDeviceId();
-      if (!remoteData.updatedByDeviceId || remoteData.updatedByDeviceId !== currentDeviceId || !isHydratedRef.current) {
-        console.log('⚡ Received live cloud update from Firestore!');
-        isApplyingRemoteSyncRef.current = true;
 
-        if (remoteData.rooms !== undefined) {
-          setRooms((prev) => {
-            const next = mergeUniqueById(prev, filterLegacy(remoteData.rooms), 'id');
-            try { localStorage.setItem('agam_pg_rooms', JSON.stringify(next)); } catch (e) {}
-            return next;
-          });
-        }
-        if (remoteData.tenants !== undefined) {
-          setTenants((prev) => {
-            const next = mergeUniqueById(prev, filterLegacy(remoteData.tenants), 'id');
-            try { localStorage.setItem('agam_pg_tenants', JSON.stringify(next)); } catch (e) {}
-            return next;
-          });
-        }
-        if (remoteData.payments !== undefined) {
-          setRentPayments((prev) => {
-            const next = mergeUniqueById(prev, filterLegacy(remoteData.payments), 'id');
-            try { localStorage.setItem('agam_pg_payments', JSON.stringify(next)); } catch (e) {}
-            return next;
-          });
-        }
-        if (remoteData.incomes !== undefined) {
-          setIncomes((prev) => {
-            const next = mergeUniqueById(prev, filterLegacy(remoteData.incomes), 'id');
-            try { localStorage.setItem('agam_pg_incomes', JSON.stringify(next)); } catch (e) {}
-            return next;
-          });
-        }
-        if (remoteData.expenses !== undefined) {
-          setExpenses((prev) => {
-            const next = mergeUniqueById(prev, filterLegacy(remoteData.expenses), 'id');
-            try { localStorage.setItem('agam_pg_expenses', JSON.stringify(next)); } catch (e) {}
-            return next;
-          });
-        }
-        if (remoteData.staffContacts !== undefined) {
-          setStaffContacts((prev) => {
-            const next = mergeUniqueById(prev, filterLegacy(remoteData.staffContacts), 'id');
-            try { localStorage.setItem('agam_pg_staff', JSON.stringify(next)); } catch (e) {}
-            return next;
-          });
-        }
-        if (remoteData.bulkGroups !== undefined) {
-          setBulkGroups((prev) => {
-            const next = mergeUniqueById(prev, filterLegacy(remoteData.bulkGroups), 'id');
-            try { localStorage.setItem('agam_pg_bulk_groups', JSON.stringify(next)); } catch (e) {}
-            return next;
-          });
-        }
-        if (remoteData.maintenanceTickets !== undefined) {
-          setMaintenanceTickets((prev) => {
-            const next = mergeUniqueById(prev, filterLegacy(remoteData.maintenanceTickets), 'id');
-            try { localStorage.setItem('agam_pg_tickets', JSON.stringify(next)); } catch (e) {}
-            return next;
-          });
-        }
-        if (remoteData.notices !== undefined) {
-          setNotices((prev) => {
-            const next = mergeUniqueById(prev, filterLegacy(remoteData.notices), 'id');
-            try { localStorage.setItem('agam_pg_notices', JSON.stringify(next)); } catch (e) {}
-            return next;
-          });
-        }
-        if (remoteData.whatsappTemplates !== undefined) {
-          setWhatsAppTemplates(remoteData.whatsappTemplates);
-          try { localStorage.setItem('agam_pg_wa_templates', JSON.stringify(remoteData.whatsappTemplates)); } catch (e) {}
-        }
+      // Skip our own writes once hydration is done (prevents echo loops)
+      const isOwnWrite = remoteData.updatedByDeviceId === currentDeviceId;
+      if (isOwnWrite && isHydratedRef.current) return;
 
-        setCloudSyncStatus('synced');
-        setLastSyncTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-        setTimeout(() => {
-          isApplyingRemoteSyncRef.current = false;
-        }, 500);
-      }
+      // Last-writer-wins at the document level: only apply a remote snapshot
+      // when it is newer than the last one we applied. Unlike union-merging,
+      // this makes edits AND deletes made on other devices propagate here.
+      const remoteTs = remoteData.lastUpdated || '';
+      const lastTs = lastAppliedRemoteUpdateRef.current;
+      if (lastTs && remoteTs && remoteTs <= lastTs) return;
+
+      console.log('⚡ Received live cloud update from Firestore!');
+      if (remoteTs) lastAppliedRemoteUpdateRef.current = remoteTs;
+      isApplyingRemoteSyncRef.current = true;
+
+      const nextRooms = filterLegacy(remoteData.rooms || []);
+      const nextTenants = filterLegacy(remoteData.tenants || []);
+      const nextPayments = filterLegacy(remoteData.payments || []);
+      const nextIncomes = filterLegacy(remoteData.incomes || []);
+      const nextExpenses = filterLegacy(remoteData.expenses || []);
+      const nextTickets = filterLegacy(remoteData.maintenanceTickets || []);
+      const nextStaff = filterLegacy(remoteData.staffContacts || []);
+      const nextGroups = filterLegacy(remoteData.bulkGroups || []);
+      const nextNotices = filterLegacy(remoteData.notices || []);
+
+      setRooms(nextRooms);
+      setTenants(nextTenants);
+      setRentPayments(nextPayments);
+      setIncomes(nextIncomes);
+      setExpenses(nextExpenses);
+      setMaintenanceTickets(nextTickets);
+      setStaffContacts(nextStaff);
+      setBulkGroups(nextGroups);
+      setNotices(nextNotices);
+      setWhatsAppTemplates((prev) =>
+        remoteData.whatsappTemplates?.length ? remoteData.whatsappTemplates : prev
+      );
+
+      try {
+        localStorage.setItem('agam_pg_rooms', JSON.stringify(nextRooms));
+        localStorage.setItem('agam_pg_tenants', JSON.stringify(nextTenants));
+        localStorage.setItem('agam_pg_payments', JSON.stringify(nextPayments));
+        localStorage.setItem('agam_pg_incomes', JSON.stringify(nextIncomes));
+        localStorage.setItem('agam_pg_expenses', JSON.stringify(nextExpenses));
+        localStorage.setItem('agam_pg_tickets', JSON.stringify(nextTickets));
+        localStorage.setItem('agam_pg_staff', JSON.stringify(nextStaff));
+        localStorage.setItem('agam_pg_bulk_groups', JSON.stringify(nextGroups));
+        localStorage.setItem('agam_pg_notices', JSON.stringify(nextNotices));
+        localStorage.setItem('agam_pg_last_updated', new Date().toISOString());
+      } catch (e) {}
+
+      setCloudSyncStatus('synced');
+      setLastSyncTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+      setTimeout(() => {
+        isApplyingRemoteSyncRef.current = false;
+      }, 500);
     });
 
     return () => {
@@ -459,8 +467,7 @@ export default function App() {
     // Crucial: do NOT auto-save before hydration is complete or while remote updates are applying
     if (!isHydratedRef.current || isApplyingRemoteSyncRef.current) return;
 
-    setCloudSyncStatus('syncing');
-    saveStateToCloud({
+    const snapshot: AppSyncData = {
       rooms,
       tenants,
       payments: rentPayments,
@@ -471,14 +478,12 @@ export default function App() {
       bulkGroups,
       notices,
       whatsappTemplates: whatsAppTemplates,
-    });
+    };
 
-    const timer = setTimeout(() => {
-      setCloudSyncStatus('synced');
-      setLastSyncTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-    }, 1200);
-
-    return () => clearTimeout(timer);
+    // The "Synced" status is set by the save callbacks in firebaseSync once the
+    // write actually succeeds, so the pill never claims success on failure.
+    setCloudSyncStatus((prev) => (prev === 'offline' ? prev : 'syncing'));
+    saveStateToCloud(snapshot);
   }, [
     rooms,
     tenants,
@@ -491,6 +496,22 @@ export default function App() {
     notices,
     whatsAppTemplates,
   ]);
+
+  // Keep an always-current snapshot of the full state (used for reconnect re-sync)
+  useEffect(() => {
+    latestStateRef.current = {
+      rooms,
+      tenants,
+      payments: rentPayments,
+      incomes,
+      expenses,
+      maintenanceTickets,
+      staffContacts,
+      bulkGroups,
+      notices,
+      whatsappTemplates: whatsAppTemplates,
+    };
+  });
 
   // Modal States
   const [isAddTenantOpen, setIsAddTenantOpen] = useState(false);
@@ -517,12 +538,114 @@ export default function App() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isSyncingCloudSql, setIsSyncingCloudSql] = useState(false);
 
+  // Confirmation dialog for destructive actions (delete / reset / restore)
+  const [confirmDialog, setConfirmDialog] = useState<{
+    title: string;
+    message: string;
+    confirmLabel: string;
+    danger?: boolean;
+    onConfirm: () => void;
+  } | null>(null);
+
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => {
       setToastMessage(null);
     }, 3200);
   };
+
+  // Surface cloud sync results in the UI (status pill + throttled error toast)
+  useEffect(() => {
+    setSyncCallbacks({
+      onSuccess: () => {
+        hasUnsyncedChangesRef.current = false;
+        setCloudSyncStatus((prev) => (prev === 'offline' ? prev : 'synced'));
+        setLastSyncTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+      },
+      onError: () => {
+        hasUnsyncedChangesRef.current = true;
+        setCloudSyncStatus('error');
+        const now = Date.now();
+        if (now - lastSyncErrorToastRef.current > 10000) {
+          lastSyncErrorToastRef.current = now;
+          showToast('Cloud sync failed — your data is saved on this device.');
+        }
+      },
+    });
+    return () => setSyncCallbacks(null);
+  }, []);
+
+  // Online/offline detection: keep the sync pill honest and push any pending
+  // local changes as soon as the connection comes back.
+  useEffect(() => {
+    const handleOffline = () => {
+      setCloudSyncStatus('offline');
+      showToast('You are offline — changes will sync when you reconnect.');
+    };
+    const handleOnline = async () => {
+      showToast('Back online — syncing your data…');
+      // Capture the local snapshot synchronously: it may contain edits made
+      // while offline that a racing remote snapshot would otherwise wipe.
+      const snapshot = latestStateRef.current;
+
+      if (hasUnsyncedChangesRef.current && snapshot && isHydratedRef.current) {
+        try {
+          const cloudData = await fetchInitialCloudData();
+          if (cloudData) {
+            // Reconcile: union local (offline) changes with the cloud snapshot
+            // so nothing is lost, then push the merged master copy.
+            const merged: AppSyncData = {
+              rooms: mergeUniqueById(snapshot.rooms, filterLegacy(cloudData.rooms || []), 'id'),
+              tenants: mergeUniqueById(snapshot.tenants, filterLegacy(cloudData.tenants || []), 'id'),
+              payments: mergeUniqueById(snapshot.payments, filterLegacy(cloudData.payments || []), 'id'),
+              incomes: mergeUniqueById(snapshot.incomes, filterLegacy(cloudData.incomes || []), 'id'),
+              expenses: mergeUniqueById(snapshot.expenses, filterLegacy(cloudData.expenses || []), 'id'),
+              maintenanceTickets: mergeUniqueById(snapshot.maintenanceTickets, filterLegacy(cloudData.maintenanceTickets || []), 'id'),
+              staffContacts: mergeUniqueById(snapshot.staffContacts, filterLegacy(cloudData.staffContacts || []), 'id'),
+              bulkGroups: mergeUniqueById(snapshot.bulkGroups, filterLegacy(cloudData.bulkGroups || []), 'id'),
+              notices: mergeUniqueById(snapshot.notices, filterLegacy(cloudData.notices || []), 'id'),
+              whatsappTemplates: cloudData.whatsappTemplates?.length
+                ? cloudData.whatsappTemplates
+                : snapshot.whatsappTemplates,
+            };
+            latestStateRef.current = merged;
+            // Block racing listener snapshots older than our reconciled push
+            lastAppliedRemoteUpdateRef.current = new Date().toISOString();
+            saveStateToCloudImmediately(merged);
+            setRooms(merged.rooms);
+            setTenants(merged.tenants);
+            setRentPayments(merged.payments);
+            setIncomes(merged.incomes);
+            setExpenses(merged.expenses);
+            setMaintenanceTickets(merged.maintenanceTickets);
+            setStaffContacts(merged.staffContacts);
+            setBulkGroups(merged.bulkGroups);
+            setNotices(merged.notices);
+            setWhatsAppTemplates(merged.whatsappTemplates);
+            return;
+          }
+        } catch (err) {
+          console.warn('Reconnect reconcile failed, pushing local state:', err);
+        }
+        // Fallback: push the local snapshot as-is
+        lastAppliedRemoteUpdateRef.current = new Date().toISOString();
+        saveStateToCloudImmediately(snapshot);
+        return;
+      }
+
+      // No unsynced local changes: let the live listener apply remote updates
+      setCloudSyncStatus('syncing');
+    };
+    window.addEventListener('offline', handleOffline);
+    window.addEventListener('online', handleOnline);
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      setCloudSyncStatus('offline');
+    }
+    return () => {
+      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('online', handleOnline);
+    };
+  }, []);
 
   // WhatsApp Sender
   const handleSendWhatsApp = (phone: string, text: string) => {
@@ -770,21 +893,26 @@ export default function App() {
   const handleSyncCloudSql = async () => {
     try {
       setIsSyncingCloudSql(true);
-      const { getIdToken } = await import('./lib/firebase');
+      const { getIdToken, auth } = await import('./lib/firebase');
       const token = await getIdToken();
       if (!token) {
         showToast('Please connect your Google Account first to sync with Cloud SQL.');
         return;
       }
 
-      // First ensure user is synced
-      await fetch('/api/auth/sync', {
+      // First ensure user is synced (send the display name so Cloud SQL rows
+      // are attributed to the real Google account)
+      const syncRes = await fetch('/api/auth/sync', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({ name: auth.currentUser?.displayName || '' }),
       });
+      if (!syncRes.ok) {
+        throw new Error('Could not verify your Google account with the server.');
+      }
 
       // Save complete PG dataset to Cloud SQL
       const saveRes = await fetch('/api/cloudsql/save', {
@@ -806,8 +934,12 @@ export default function App() {
       });
 
       if (!saveRes.ok) {
-        const err = await saveRes.text();
-        throw new Error(`Cloud SQL sync failed: ${err}`);
+        const errText = await saveRes.text();
+        let errMsg = errText;
+        try {
+          errMsg = JSON.parse(errText).error || errText;
+        } catch {}
+        throw new Error(errMsg);
       }
 
       showToast('Successfully synchronized with Cloud SQL PostgreSQL!');
@@ -819,8 +951,8 @@ export default function App() {
     }
   };
 
-  // Reset / Clear Demo Data to start clean
-  const handleResetData = async () => {
+  // Reset / Clear Demo Data to start clean (performs the actual wipe)
+  const performResetData = async () => {
     isApplyingRemoteSyncRef.current = true;
 
     // Clear all state arrays to completely empty
@@ -868,6 +1000,21 @@ export default function App() {
     }, 1200);
 
     showToast('All demo rooms, staff directory, residents, and ledgers cleared! Ready for real PG data.');
+  };
+
+  // Ask for confirmation before wiping everything
+  const handleResetData = () => {
+    setConfirmDialog({
+      title: 'Reset ALL PG data?',
+      message:
+        'This permanently clears every room, resident, payment, expense, income, staff contact, ticket and notice — on this device and across all synced devices. This cannot be undone.',
+      confirmLabel: 'Yes, Reset Everything',
+      danger: true,
+      onConfirm: () => {
+        setConfirmDialog(null);
+        void performResetData();
+      },
+    });
   };
 
   // Add Tenant Handler
@@ -1294,8 +1441,8 @@ export default function App() {
     showToast('Room price & sharing capacity updated successfully!');
   };
 
-  // Delete Room Handler
-  const handleDeleteRoom = (roomId: string) => {
+  // Delete Room Handler (performs the actual deletion)
+  const performDeleteRoom = (roomId: string) => {
     const targetRoom = rooms.find((r) => r.id === roomId);
     const updatedRooms = rooms.filter((r) => r.id !== roomId);
     try {
@@ -1320,6 +1467,22 @@ export default function App() {
       whatsappTemplates: whatsAppTemplates,
     });
     showToast(`Removed Room ${targetRoom?.number || ''} from PG.`);
+  };
+
+  // Ask for confirmation before deleting a room
+  const handleDeleteRoom = (roomId: string) => {
+    const targetRoom = rooms.find((r) => r.id === roomId);
+    setConfirmDialog({
+      title: `Delete Room ${targetRoom?.number || ''}?`,
+      message:
+        'The room will be removed from your PG. Residents assigned to it are kept but will need a new room allocation. This cannot be undone.',
+      confirmLabel: 'Delete Room',
+      danger: true,
+      onConfirm: () => {
+        setConfirmDialog(null);
+        performDeleteRoom(roomId);
+      },
+    });
   };
 
   // Add Expense Handler
@@ -1349,8 +1512,8 @@ export default function App() {
     showToast(`Logged expense ₹${newExpense.amount.toLocaleString('en-IN')} for ${newExpense.category}!`);
   };
 
-  // Delete Expense Handler
-  const handleDeleteExpense = (id: string) => {
+  // Delete Expense Handler (performs the actual deletion)
+  const performDeleteExpense = (id: string) => {
     const updatedExpenses = expenses.filter((e) => e.id !== id);
     try {
       localStorage.setItem('agam_pg_expenses', JSON.stringify(updatedExpenses));
@@ -1370,6 +1533,23 @@ export default function App() {
       whatsappTemplates: whatsAppTemplates,
     });
     showToast('Expense entry removed.');
+  };
+
+  // Ask for confirmation before deleting an expense
+  const handleDeleteExpense = (id: string) => {
+    const target = expenses.find((e) => e.id === id);
+    setConfirmDialog({
+      title: 'Delete this expense?',
+      message: target
+        ? `“${target.title}” — ₹${target.amount.toLocaleString('en-IN')} will be removed from your ledger. This cannot be undone.`
+        : 'This expense entry will be removed from your ledger. This cannot be undone.',
+      confirmLabel: 'Delete Expense',
+      danger: true,
+      onConfirm: () => {
+        setConfirmDialog(null);
+        performDeleteExpense(id);
+      },
+    });
   };
 
   // Add Other Income Handler
@@ -1399,8 +1579,8 @@ export default function App() {
     showToast(`Recorded income of ₹${newIncome.amount.toLocaleString('en-IN')}!`);
   };
 
-  // Delete Income Handler
-  const handleDeleteIncome = (id: string) => {
+  // Delete Income Handler (performs the actual deletion)
+  const performDeleteIncome = (id: string) => {
     const updatedIncomes = incomes.filter((i) => i.id !== id);
     try {
       localStorage.setItem('agam_pg_incomes', JSON.stringify(updatedIncomes));
@@ -1420,6 +1600,23 @@ export default function App() {
       whatsappTemplates: whatsAppTemplates,
     });
     showToast('Income entry removed.');
+  };
+
+  // Ask for confirmation before deleting an income
+  const handleDeleteIncome = (id: string) => {
+    const target = incomes.find((i) => i.id === id);
+    setConfirmDialog({
+      title: 'Delete this income?',
+      message: target
+        ? `“${target.title}” — ₹${target.amount.toLocaleString('en-IN')} will be removed from your ledger. This cannot be undone.`
+        : 'This income entry will be removed from your ledger. This cannot be undone.',
+      confirmLabel: 'Delete Income',
+      danger: true,
+      onConfirm: () => {
+        setConfirmDialog(null);
+        performDeleteIncome(id);
+      },
+    });
   };
 
   // Add Maintenance Ticket
@@ -1500,7 +1697,7 @@ export default function App() {
     });
   };
 
-  const handleDeleteStaff = (id: string) => {
+  const performDeleteStaff = (id: string) => {
     const updatedStaff = staffContacts.filter((s) => s.id !== id);
     setStaffContacts(updatedStaff);
     try {
@@ -1522,8 +1719,25 @@ export default function App() {
     showToast('Contact removed from phone book.');
   };
 
-  // Restore Full PG Backup Handler
-  const handleRestoreBackup = (backupData: any) => {
+  // Ask for confirmation before removing a staff contact
+  const handleDeleteStaff = (id: string) => {
+    const target = staffContacts.find((s) => s.id === id);
+    setConfirmDialog({
+      title: 'Remove this contact?',
+      message: target
+        ? `${target.name} (${target.role}) will be removed from your staff phone book. This cannot be undone.`
+        : 'This contact will be removed from your staff phone book. This cannot be undone.',
+      confirmLabel: 'Remove Contact',
+      danger: true,
+      onConfirm: () => {
+        setConfirmDialog(null);
+        performDeleteStaff(id);
+      },
+    });
+  };
+
+  // Restore Full PG Backup Handler (performs the actual restore)
+  const performRestoreBackup = (backupData: any) => {
     if (!backupData) return;
     const r = backupData.rooms && Array.isArray(backupData.rooms) ? backupData.rooms : rooms;
     const t = backupData.tenants && Array.isArray(backupData.tenants) ? backupData.tenants : tenants;
@@ -1571,6 +1785,22 @@ export default function App() {
     showToast('Successfully restored all PG data!');
   };
 
+  // Ask for confirmation before replacing current data with a backup
+  const handleRestoreBackup = (backupData: any) => {
+    if (!backupData) return;
+    setConfirmDialog({
+      title: 'Restore this backup?',
+      message:
+        'Your current rooms, residents, payments and ledgers will be replaced by the backup contents. This cannot be undone.',
+      confirmLabel: 'Restore Backup',
+      danger: true,
+      onConfirm: () => {
+        setConfirmDialog(null);
+        performRestoreBackup(backupData);
+      },
+    });
+  };
+
   // Navigation with optional filter
   const handleNavigate = (tab: TabType, filter?: string) => {
     setCurrentTab(tab);
@@ -1613,6 +1843,19 @@ export default function App() {
     if (!selectedRoom) return null;
     return computedRooms.find((r) => r.id === selectedRoom.id) || selectedRoom;
   }, [selectedRoom, computedRooms]);
+
+  // Boot splash while the first cloud/local hydration is in progress
+  if (isBootLoading) {
+    return (
+      <div className="bg-slate-100/70 min-h-screen flex flex-col items-center justify-center gap-5">
+        <AgamLogo size="lg" variant="full" />
+        <div className="w-9 h-9 rounded-full border-4 border-emerald-200 border-t-[#0a332c] animate-spin" />
+        <p className="text-[11px] font-extrabold uppercase tracking-[0.2em] text-slate-400">
+          Loading your PG data…
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-slate-100/70 min-h-screen text-slate-900 font-sans selection:bg-emerald-600 selection:text-white pb-[80px]">
@@ -1896,6 +2139,17 @@ export default function App() {
         templates={whatsAppTemplates}
         onSaveTemplate={handleSaveWhatsAppTemplate}
         onDeleteTemplate={handleDeleteWhatsAppTemplate}
+      />
+
+      {/* Destructive Action Confirmation */}
+      <ConfirmDialog
+        isOpen={!!confirmDialog}
+        title={confirmDialog?.title || ''}
+        message={confirmDialog?.message || ''}
+        confirmLabel={confirmDialog?.confirmLabel}
+        danger={confirmDialog?.danger}
+        onConfirm={() => confirmDialog?.onConfirm()}
+        onCancel={() => setConfirmDialog(null)}
       />
     </div>
   );
