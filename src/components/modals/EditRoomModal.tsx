@@ -60,12 +60,12 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({
         {/* Header */}
         <div className="bg-[#0a332c] text-white p-4 px-5 flex justify-between items-center shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-white/15 text-white border border-white/20 flex items-center justify-center">
+            <div className="w-11 h-11 rounded-xl bg-white/15 text-white border border-white/20 flex items-center justify-center">
               <span className="material-symbols-outlined text-[20px]">meeting_room</span>
             </div>
             <div>
               <h3 className="text-[17px] font-extrabold leading-tight">Edit Room {room.number}</h3>
-              <p className="text-[11px] text-emerald-100/80 font-medium">
+              <p className="text-[12px] text-emerald-100/80 font-medium">
                 Configure sharing capacity (1 to 10), rent & amenities
               </p>
             </div>
@@ -83,7 +83,7 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({
           {/* Room Number & Title */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block font-bold text-slate-700 text-[11px] mb-1">
+              <label className="block font-bold text-slate-700 text-[12px] mb-1">
                 Room Number *
               </label>
               <input
@@ -91,12 +91,12 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({
                 required
                 value={roomNumber}
                 onChange={(e) => setRoomNumber(Number(e.target.value))}
-                className="w-full h-[40px] px-3.5 border border-slate-300 rounded-xl bg-white font-extrabold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                className="w-full h-[48px] px-3.5 border border-slate-300 rounded-xl bg-white font-extrabold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
               />
             </div>
 
             <div>
-              <label className="block font-bold text-slate-700 text-[11px] mb-1">
+              <label className="block font-bold text-slate-700 text-[12px] mb-1">
                 Display Title
               </label>
               <input
@@ -104,7 +104,7 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g. Room 101"
-                className="w-full h-[40px] px-3.5 border border-slate-300 rounded-xl bg-white font-semibold text-slate-900 focus:outline-none"
+                className="w-full h-[48px] px-3.5 border border-slate-300 rounded-xl bg-white font-semibold text-slate-900 focus:outline-none"
               />
             </div>
           </div>
@@ -112,13 +112,13 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({
           {/* Sharing Capacity (1 to 10), Floor & Type */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
             <div>
-              <label className="block font-bold text-slate-700 text-[11px] mb-1">
+              <label className="block font-bold text-slate-700 text-[12px] mb-1">
                 Capacity (Beds) *
               </label>
               <select
                 value={capacity}
                 onChange={(e) => setCapacity(Number(e.target.value))}
-                className="w-full h-[40px] px-2.5 border border-slate-300 rounded-xl bg-white text-[#0a332c] font-black text-[14px] focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                className="w-full h-[48px] px-2.5 border border-slate-300 rounded-xl bg-white text-[#0a332c] font-black text-[14px] focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
               >
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
                   <option key={num} value={num}>
@@ -129,13 +129,13 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({
             </div>
 
             <div>
-              <label className="block font-bold text-slate-700 text-[11px] mb-1">
+              <label className="block font-bold text-slate-700 text-[12px] mb-1">
                 Floor
               </label>
               <select
                 value={floor}
                 onChange={(e) => setFloor(Number(e.target.value))}
-                className="w-full h-[40px] px-2.5 border border-slate-300 rounded-xl bg-white font-bold text-slate-900 focus:outline-none"
+                className="w-full h-[48px] px-2.5 border border-slate-300 rounded-xl bg-white font-bold text-slate-900 focus:outline-none"
               >
                 <option value={0}>Ground Floor</option>
                 <option value={1}>1st Floor</option>
@@ -147,13 +147,13 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({
             </div>
 
             <div>
-              <label className="block font-bold text-slate-700 text-[11px] mb-1">
+              <label className="block font-bold text-slate-700 text-[12px] mb-1">
                 Cooling Type
               </label>
               <select
                 value={type}
                 onChange={(e) => setType(e.target.value as 'AC' | 'Non-AC')}
-                className="w-full h-[40px] px-2.5 border border-slate-300 rounded-xl bg-white font-bold text-slate-900 focus:outline-none"
+                className="w-full h-[48px] px-2.5 border border-slate-300 rounded-xl bg-white font-bold text-slate-900 focus:outline-none"
               >
                 <option value="AC">AC</option>
                 <option value="Non-AC">Non-AC</option>
@@ -163,7 +163,7 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({
 
           {/* Rent per bed */}
           <div>
-            <label className="block font-bold text-slate-700 text-[11px] mb-1">
+            <label className="block font-bold text-slate-700 text-[12px] mb-1">
               Monthly Rent Per Bed (₹) *
             </label>
             <div className="relative">
@@ -175,20 +175,20 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({
                 step={50}
                 value={perBedRent}
                 onChange={(e) => setPerBedRent(Number(e.target.value))}
-                className="w-full h-[40px] pl-8 pr-3 border border-emerald-300 rounded-xl bg-white font-black text-[16px] text-[#0a332c] focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                className="w-full h-[48px] pl-8 pr-3 border border-emerald-300 rounded-xl bg-white font-black text-[16px] text-[#0a332c] focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
               />
             </div>
           </div>
 
           {/* Status & Maintenance */}
           <div>
-            <label className="block font-bold text-slate-700 text-[11px] mb-1">
+            <label className="block font-bold text-slate-700 text-[12px] mb-1">
               Operational Status
             </label>
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value as any)}
-              className="w-full h-[40px] px-3 border border-slate-300 rounded-xl bg-white font-bold text-slate-900 focus:outline-none"
+              className="w-full h-[48px] px-3 border border-slate-300 rounded-xl bg-white font-bold text-slate-900 focus:outline-none"
             >
               <option value="empty">Empty (Vacant)</option>
               <option value="partial">Partial (Some Beds Available)</option>
@@ -199,7 +199,7 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({
 
           {status === 'maintenance' && (
             <div>
-              <label className="block font-bold text-slate-700 text-[11px] mb-1">
+              <label className="block font-bold text-slate-700 text-[12px] mb-1">
                 Maintenance Reason
               </label>
               <input
@@ -207,14 +207,14 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({
                 value={maintenanceReason}
                 onChange={(e) => setMaintenanceReason(e.target.value)}
                 placeholder="e.g. Washroom tap repair & whitewash"
-                className="w-full h-[38px] px-3 border border-amber-300 rounded-xl bg-amber-50/50 text-slate-900 font-medium focus:outline-none"
+                className="w-full h-[46px] px-3 border border-amber-300 rounded-xl bg-amber-50/50 text-slate-900 font-medium focus:outline-none"
               />
             </div>
           )}
 
           {/* Amenities */}
           <div>
-            <label className="block font-bold text-slate-700 text-[11px] mb-1">
+            <label className="block font-bold text-slate-700 text-[12px] mb-1">
               Amenities (comma-separated)
             </label>
             <input
@@ -222,26 +222,26 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({
               value={amenitiesText}
               onChange={(e) => setAmenitiesText(e.target.value)}
               placeholder="e.g. Attached Bath, Balcony, Geyser, Study Desk"
-              className="w-full h-[40px] px-3 border border-slate-300 rounded-xl bg-white text-slate-900 text-[12px] focus:outline-none"
+              className="w-full h-[48px] px-3 border border-slate-300 rounded-xl bg-white text-slate-900 text-[13px] focus:outline-none"
             />
           </div>
 
           {/* Current Occupants */}
           <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
-            <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 block mb-1">
+            <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500 block mb-1">
               Current Occupancy ({room.occupied}/{capacity} Beds Occupied)
             </span>
-            <div className="flex flex-wrap gap-1.5 mt-1">
+            <div className="flex flex-wrap gap-2 mt-1">
               {room.occupants.map((occ, i) => (
                 <span
                   key={i}
-                  className="bg-white border border-slate-200 px-2 py-0.5 rounded-md text-[11px] font-bold text-slate-800"
+                  className="bg-white border border-slate-200 px-2 py-0.5 rounded-md text-[12px] font-bold text-slate-800"
                 >
                   B{i + 1}: {occ}
                 </span>
               ))}
               {room.occupants.length === 0 && (
-                <span className="text-[11px] text-slate-400 italic">No occupants currently</span>
+                <span className="text-[12px] text-slate-400 italic">No occupants currently</span>
               )}
             </div>
           </div>
@@ -257,7 +257,7 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({
                     onClose();
                   }
                 }}
-                className="h-[44px] px-4 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold rounded-xl text-[12px] flex items-center gap-1 transition-colors"
+                className="h-[48px] px-4 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold rounded-xl text-[13px] flex items-center gap-1 transition-colors"
               >
                 <span className="material-symbols-outlined text-[18px]">delete</span>
                 <span>Delete</span>
@@ -267,13 +267,13 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 h-[44px] bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors text-[13px]"
+              className="flex-1 h-[48px] bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors text-[13px]"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="flex-1 h-[44px] bg-[#0a332c] hover:bg-[#0f4239] text-white font-extrabold rounded-xl shadow-xs transition-colors flex items-center justify-center gap-1.5 text-[13px]"
+              className="flex-1 h-[48px] bg-[#0a332c] hover:bg-[#0f4239] text-white font-extrabold rounded-xl shadow-xs transition-colors flex items-center justify-center gap-2 text-[14px]"
             >
               <span className="material-symbols-outlined text-[18px]">save</span>
               <span>Save Changes</span>

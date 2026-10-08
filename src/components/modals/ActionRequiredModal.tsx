@@ -50,12 +50,12 @@ export const ActionRequiredModal: React.FC<ActionRequiredModalProps> = ({
         {/* Header */}
         <div className="bg-slate-50 border-b border-slate-200 p-4 px-6 flex justify-between items-center">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-700 border border-amber-200 flex items-center justify-center">
+            <div className="w-11 h-11 rounded-xl bg-amber-50 text-amber-700 border border-amber-200 flex items-center justify-center">
               <span className="material-symbols-outlined text-[20px]">{iconName}</span>
             </div>
             <div>
               <h3 className="text-[17px] font-bold text-slate-900 leading-tight">{title}</h3>
-              <p className="text-[12px] text-slate-500 font-medium">
+              <p className="text-[13px] text-slate-500 font-medium">
                 {filteredTenants.length} resident{filteredTenants.length === 1 ? '' : 's'} requiring manager attention
               </p>
             </div>
@@ -78,7 +78,7 @@ export const ActionRequiredModal: React.FC<ActionRequiredModalProps> = ({
               <div className="flex justify-between items-start">
                 <div>
                   <h4 className="text-[16px] font-bold text-slate-900">{tenant.name}</h4>
-                  <p className="text-[12px] text-slate-500 font-medium flex items-center gap-1.5 mt-0.5">
+                  <p className="text-[13px] text-slate-500 font-medium flex items-center gap-2 mt-0.5">
                     <span className="material-symbols-outlined text-[15px] text-blue-600">bed</span>
                     <span>Room {tenant.roomNumber}</span>
                     <span>•</span>
@@ -89,14 +89,14 @@ export const ActionRequiredModal: React.FC<ActionRequiredModalProps> = ({
                   <span className="text-[16px] font-extrabold text-rose-600">
                     ₹{tenant.rentAmount.toLocaleString('en-IN')}
                   </span>
-                  <span className={`block text-[10px] font-bold px-2 py-0.5 rounded-full mt-1 ${badgeColor}`}>
+                  <span className={`block text-[11px] font-bold px-2 py-0.5 rounded-full mt-1 ${badgeColor}`}>
                     {tenant.status}
                   </span>
                 </div>
               </div>
 
               {tenant.notes && (
-                <p className="text-[12px] text-slate-600 bg-white border border-slate-200 p-2.5 rounded-lg italic font-medium">
+                <p className="text-[13px] text-slate-600 bg-white border border-slate-200 p-2.5 rounded-lg italic font-medium">
                   "{tenant.notes}"
                 </p>
               )}
@@ -107,7 +107,7 @@ export const ActionRequiredModal: React.FC<ActionRequiredModalProps> = ({
                     onClose();
                     onSelectTenant(tenant);
                   }}
-                  className="flex-1 py-2 bg-white hover:bg-slate-100 text-slate-700 text-[12px] font-bold rounded-xl transition-colors border border-slate-200"
+                  className="flex-1 py-2 bg-white hover:bg-slate-100 text-slate-700 text-[13px] font-bold rounded-xl transition-colors border border-slate-200"
                 >
                   View Resident
                 </button>
@@ -118,7 +118,7 @@ export const ActionRequiredModal: React.FC<ActionRequiredModalProps> = ({
                       onClose();
                       onCollectRent(tenant);
                     }}
-                    className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-[12px] font-bold rounded-xl transition-all flex items-center justify-center gap-1 shadow-2xs"
+                    className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-[13px] font-bold rounded-xl transition-all flex items-center justify-center gap-1 shadow-2xs"
                   >
                     <span className="material-symbols-outlined text-[16px]">payments</span>
                     Collect Rent
@@ -134,7 +134,7 @@ export const ActionRequiredModal: React.FC<ActionRequiredModalProps> = ({
                 check_circle
               </span>
               <p className="font-bold text-slate-800 text-[15px]">All clear!</p>
-              <p className="text-[12px] mt-1 text-slate-500">No records pending in this queue.</p>
+              <p className="text-[13px] mt-1 text-slate-500">No records pending in this queue.</p>
             </div>
           )}
         </div>

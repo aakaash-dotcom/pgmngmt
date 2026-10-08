@@ -108,13 +108,13 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
             <h3 className="font-extrabold text-[17px] text-slate-900 leading-tight">
               {initialStaff ? 'Edit Staff / Vendor Contact' : 'Add Staff or Service Vendor'}
             </h3>
-            <p className="text-[12px] text-slate-500 font-medium">
+            <p className="text-[13px] text-slate-500 font-medium">
               Save phone numbers for cleaners, electricians, water tanker & repairs
             </p>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition-colors"
+            className="w-11 h-11 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition-colors"
           >
             <span className="material-symbols-outlined text-[18px]">close</span>
           </button>
@@ -123,7 +123,7 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
         {/* Form */}
         <form onSubmit={handleSubmit} className="flex flex-col gap-3.5 overflow-y-auto pr-1 text-[13px]">
           <div>
-            <label className="block font-bold text-slate-700 text-[12px] mb-1">
+            <label className="block font-bold text-slate-700 text-[13px] mb-1">
               Contact / Worker Name *
             </label>
             <input
@@ -132,18 +132,18 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
               placeholder="e.g. Lakshmi (Daily Cleaning) or Ramesh Electrician"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full h-[42px] px-3 border border-slate-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none font-medium"
+              className="w-full h-[48px] px-3 border border-slate-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none font-medium"
             />
           </div>
 
           <div>
-            <label className="block font-bold text-slate-700 text-[12px] mb-1">
+            <label className="block font-bold text-slate-700 text-[13px] mb-1">
               Role / Service Category *
             </label>
             <select
               value={role}
               onChange={(e) => setRole(e.target.value as StaffRole)}
-              className="w-full h-[42px] px-3 border border-slate-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none bg-white font-medium text-slate-800"
+              className="w-full h-[48px] px-3 border border-slate-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none bg-white font-medium text-slate-800"
             >
               {STAFF_ROLES.map((r) => (
                 <option key={r} value={r}>
@@ -155,11 +155,11 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block font-bold text-slate-700 text-[12px] mb-1">
+              <label className="block font-bold text-slate-700 text-[13px] mb-1">
                 Primary Phone Number * (10 Digits)
               </label>
               <div className="relative flex items-center">
-                <div className="absolute left-0 top-0 bottom-0 px-2.5 bg-slate-100 border-r border-slate-300 rounded-l-xl flex items-center gap-1 text-slate-700 font-extrabold text-[12px] select-none pointer-events-none">
+                <div className="absolute left-0 top-0 bottom-0 px-2.5 bg-slate-100 border-r border-slate-300 rounded-l-xl flex items-center gap-1 text-slate-700 font-extrabold text-[13px] select-none pointer-events-none">
                   <span>🇮🇳</span>
                   <span>+91</span>
                 </div>
@@ -170,17 +170,17 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
                   maxLength={12}
                   value={phone.replace(/^\+91\s*/, '')}
                   onChange={(e) => setPhone(formatIndianPhone(e.target.value))}
-                  className="w-full h-[42px] pl-[70px] pr-3 border border-slate-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none font-semibold text-slate-900"
+                  className="w-full h-[48px] pl-[70px] pr-3 border border-slate-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none font-semibold text-slate-900"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block font-bold text-slate-700 text-[12px] mb-1">
+              <label className="block font-bold text-slate-700 text-[13px] mb-1">
                 Alternate Phone (Optional)
               </label>
               <div className="relative flex items-center">
-                <div className="absolute left-0 top-0 bottom-0 px-2.5 bg-slate-100 border-r border-slate-300 rounded-l-xl flex items-center gap-1 text-slate-700 font-extrabold text-[12px] select-none pointer-events-none">
+                <div className="absolute left-0 top-0 bottom-0 px-2.5 bg-slate-100 border-r border-slate-300 rounded-l-xl flex items-center gap-1 text-slate-700 font-extrabold text-[13px] select-none pointer-events-none">
                   <span>🇮🇳</span>
                   <span>+91</span>
                 </div>
@@ -190,14 +190,14 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
                   maxLength={12}
                   value={alternatePhone.replace(/^\+91\s*/, '')}
                   onChange={(e) => setAlternatePhone(formatIndianPhone(e.target.value))}
-                  className="w-full h-[42px] pl-[70px] pr-3 border border-slate-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none font-medium text-slate-900"
+                  className="w-full h-[48px] pl-[70px] pr-3 border border-slate-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none font-medium text-slate-900"
                 />
               </div>
             </div>
           </div>
 
           <div>
-            <label className="block font-bold text-slate-700 text-[12px] mb-1">
+            <label className="block font-bold text-slate-700 text-[13px] mb-1">
               Duty Timings, Pricing or Special Notes
             </label>
             <textarea

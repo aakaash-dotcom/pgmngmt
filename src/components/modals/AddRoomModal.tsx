@@ -53,12 +53,12 @@ export const AddRoomModal: React.FC<AddRoomModalProps> = ({
         {/* Header */}
         <div className="bg-[#0a332c] text-white p-4 px-5 flex justify-between items-center shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-white/15 text-white border border-white/20 flex items-center justify-center">
+            <div className="w-11 h-11 rounded-xl bg-white/15 text-white border border-white/20 flex items-center justify-center">
               <span className="material-symbols-outlined text-[20px]">meeting_room</span>
             </div>
             <div>
               <h3 className="text-[17px] font-extrabold leading-tight">Add New PG Room</h3>
-              <p className="text-[11px] text-emerald-100/80 font-medium">Create room with custom capacity (1-10) & rent</p>
+              <p className="text-[12px] text-emerald-100/80 font-medium">Create room with custom capacity (1-10) & rent</p>
             </div>
           </div>
           <button
@@ -73,7 +73,7 @@ export const AddRoomModal: React.FC<AddRoomModalProps> = ({
         <form onSubmit={handleSubmit} className="p-4 sm:p-6 overflow-y-auto flex flex-col gap-4 text-[13px]">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block font-bold text-slate-700 text-[11px] mb-1">
+              <label className="block font-bold text-slate-700 text-[12px] mb-1">
                 Room Number *
               </label>
               <input
@@ -87,11 +87,11 @@ export const AddRoomModal: React.FC<AddRoomModalProps> = ({
                     setName(`Room ${num}`);
                   }
                 }}
-                className="w-full h-[40px] px-3.5 border border-slate-300 rounded-xl bg-white text-slate-900 font-extrabold text-[15px] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-[#0a332c]"
+                className="w-full h-[48px] px-3.5 border border-slate-300 rounded-xl bg-white text-slate-900 font-extrabold text-[15px] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-[#0a332c]"
               />
             </div>
             <div>
-              <label className="block font-bold text-slate-700 text-[11px] mb-1">
+              <label className="block font-bold text-slate-700 text-[12px] mb-1">
                 Display Title
               </label>
               <input
@@ -99,20 +99,20 @@ export const AddRoomModal: React.FC<AddRoomModalProps> = ({
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g. Room 101"
-                className="w-full h-[40px] px-3.5 border border-slate-300 rounded-xl bg-white text-slate-900 font-medium focus:outline-none"
+                className="w-full h-[48px] px-3.5 border border-slate-300 rounded-xl bg-white text-slate-900 font-medium focus:outline-none"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
             <div>
-              <label className="block font-bold text-slate-700 text-[11px] mb-1">
+              <label className="block font-bold text-slate-700 text-[12px] mb-1">
                 Sharing Capacity (Beds) *
               </label>
               <select
                 value={capacity}
                 onChange={(e) => setCapacity(Number(e.target.value))}
-                className="w-full h-[40px] px-3 border border-slate-300 rounded-xl bg-white text-[#0a332c] font-black text-[15px] focus:outline-none"
+                className="w-full h-[48px] px-3 border border-slate-300 rounded-xl bg-white text-[#0a332c] font-black text-[15px] focus:outline-none"
               >
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
                   <option key={num} value={num}>
@@ -122,13 +122,13 @@ export const AddRoomModal: React.FC<AddRoomModalProps> = ({
               </select>
             </div>
             <div>
-              <label className="block font-bold text-slate-700 text-[11px] mb-1">
+              <label className="block font-bold text-slate-700 text-[12px] mb-1">
                 Floor
               </label>
               <select
                 value={floor}
                 onChange={(e) => setFloor(Number(e.target.value))}
-                className="w-full h-[40px] px-3 border border-slate-300 rounded-xl bg-white text-slate-900 font-semibold focus:outline-none"
+                className="w-full h-[48px] px-3 border border-slate-300 rounded-xl bg-white text-slate-900 font-semibold focus:outline-none"
               >
                 <option value={0}>Ground Floor</option>
                 <option value={1}>1st Floor</option>
@@ -142,13 +142,13 @@ export const AddRoomModal: React.FC<AddRoomModalProps> = ({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block font-bold text-slate-700 text-[11px] mb-1">
+              <label className="block font-bold text-slate-700 text-[12px] mb-1">
                 Cooling Type
               </label>
               <select
                 value={type}
                 onChange={(e) => setType(e.target.value as 'AC' | 'Non-AC')}
-                className="w-full h-[40px] px-3 border border-slate-300 rounded-xl bg-white font-bold text-slate-900 focus:outline-none"
+                className="w-full h-[48px] px-3 border border-slate-300 rounded-xl bg-white font-bold text-slate-900 focus:outline-none"
               >
                 <option value="AC">AC Room</option>
                 <option value="Non-AC">Non-AC Room</option>
@@ -156,7 +156,7 @@ export const AddRoomModal: React.FC<AddRoomModalProps> = ({
             </div>
 
             <div>
-              <label className="block font-bold text-slate-700 text-[11px] mb-1">
+              <label className="block font-bold text-slate-700 text-[12px] mb-1">
                 Rent / Bed (₹) *
               </label>
               <div className="relative">
@@ -168,14 +168,14 @@ export const AddRoomModal: React.FC<AddRoomModalProps> = ({
                   step={50}
                   value={perBedRent}
                   onChange={(e) => setPerBedRent(Number(e.target.value))}
-                  className="w-full h-[40px] pl-8 pr-3 border border-emerald-300 rounded-xl bg-white text-[#0a332c] font-black text-[16px] focus:outline-none"
+                  className="w-full h-[48px] pl-8 pr-3 border border-emerald-300 rounded-xl bg-white text-[#0a332c] font-black text-[16px] focus:outline-none"
                 />
               </div>
             </div>
           </div>
 
           <div>
-            <label className="block font-bold text-slate-700 text-[11px] mb-1">
+            <label className="block font-bold text-slate-700 text-[12px] mb-1">
               Amenities (comma-separated)
             </label>
             <input
@@ -183,7 +183,7 @@ export const AddRoomModal: React.FC<AddRoomModalProps> = ({
               value={amenitiesStr}
               onChange={(e) => setAmenitiesStr(e.target.value)}
               placeholder="Attached Bath, Geyser, Cupboards, Balcony"
-              className="w-full h-[40px] px-3.5 border border-slate-300 rounded-xl bg-white text-slate-900 text-[12px] focus:outline-none"
+              className="w-full h-[48px] px-3.5 border border-slate-300 rounded-xl bg-white text-slate-900 text-[13px] focus:outline-none"
             />
           </div>
 
@@ -191,13 +191,13 @@ export const AddRoomModal: React.FC<AddRoomModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 h-[44px] bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors text-[13px]"
+              className="flex-1 h-[48px] bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors text-[13px]"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="flex-1 h-[44px] bg-[#0a332c] hover:bg-[#0f4239] text-white font-extrabold rounded-xl shadow-xs transition-colors flex items-center justify-center gap-1.5 text-[13px]"
+              className="flex-1 h-[48px] bg-[#0a332c] hover:bg-[#0f4239] text-white font-extrabold rounded-xl shadow-xs transition-colors flex items-center justify-center gap-2 text-[14px]"
             >
               <span className="material-symbols-outlined text-[18px]">add</span>
               <span>Create Room</span>

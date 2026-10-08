@@ -8,8 +8,6 @@ interface DocumentCameraCaptureProps {
   tenantName?: string;
   roomNumber?: number;
   bedNumber?: string;
-  isBulkContract?: boolean;
-  groupName?: string;
   docType?: string; // 'ID Proof (Aadhaar / Passport)' | 'Terms & Conditions Agreement' | string
   onUploaded?: (url: string, fileId: string) => void;
   onClose?: () => void;
@@ -20,8 +18,6 @@ export const DocumentCameraCapture: React.FC<DocumentCameraCaptureProps> = ({
   tenantName = 'Resident',
   roomNumber,
   bedNumber,
-  isBulkContract,
-  groupName,
   docType = 'ID Proof (Aadhaar / Passport)',
   onUploaded,
   onClose,
@@ -196,8 +192,6 @@ export const DocumentCameraCapture: React.FC<DocumentCameraCaptureProps> = ({
         name: tenantName,
         roomNumber,
         bedNumber,
-        isBulkContract,
-        groupName,
       });
       setTargetDriveFolder(folderPath);
 
@@ -237,15 +231,15 @@ export const DocumentCameraCapture: React.FC<DocumentCameraCaptureProps> = ({
     <div className={`bg-white border border-slate-200 rounded-2xl ${compact ? 'p-3' : 'p-4 sm:p-5'} flex flex-col gap-3 shadow-xs`}>
       <div className="flex justify-between items-center pb-2 border-b border-slate-100">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-emerald-50 text-[#0a332c] flex items-center justify-center font-bold">
+          <div className="w-10 h-10 rounded-lg bg-emerald-50 text-[#0a332c] flex items-center justify-center font-bold">
             <span className="material-symbols-outlined text-[16px]">cloud_upload</span>
           </div>
           <div>
             <h4 className="text-[13px] font-extrabold text-slate-900 leading-tight">
               {docType}
             </h4>
-            <p className="text-[11px] text-slate-500 font-medium truncate max-w-[240px]">
-              Organized to: {isBulkContract && groupName ? `Groups > ${groupName} > ` : 'Individual > '}{tenantName} (Room {roomNumber || '?'}{bedNumber ? `-${bedNumber}` : ''})
+            <p className="text-[12px] text-slate-500 font-medium truncate max-w-[240px]">
+              Organized to: Individual Residents &gt; {tenantName} (Room {roomNumber || '?'}{bedNumber ? `-${bedNumber}` : ''})
             </p>
           </div>
         </div>
@@ -262,8 +256,8 @@ export const DocumentCameraCapture: React.FC<DocumentCameraCaptureProps> = ({
       </div>
 
       {/* Google Drive Status Bar / Apps Script Connector */}
-      <div className="flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-[11px]">
-        <div className="flex items-center gap-1.5">
+      <div className="flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-[12px]">
+        <div className="flex items-center gap-2">
           <span className={`material-symbols-outlined text-[15px] ${appsScriptUrl ? 'text-emerald-600' : 'text-slate-400'}`}>
             {appsScriptUrl ? 'cloud_done' : 'cloud_off'}
           </span>
@@ -283,11 +277,11 @@ export const DocumentCameraCapture: React.FC<DocumentCameraCaptureProps> = ({
 
       {/* Mode Selector */}
       {!capturedImage && (
-        <div className="flex bg-slate-100 p-1 rounded-xl gap-1 text-[11px] font-bold">
+        <div className="flex bg-slate-100 p-1 rounded-xl gap-1 text-[12px] font-bold">
           <button
             type="button"
             onClick={() => setMode('upload')}
-            className={`flex-1 py-1.5 rounded-lg flex items-center justify-center gap-1.5 transition-all ${
+            className={`flex-1 h-[42px] rounded-lg flex items-center justify-center gap-2 transition-all ${
               mode === 'upload' ? 'bg-white text-[#0a332c] shadow-xs' : 'text-slate-600'
             }`}
           >
@@ -297,7 +291,7 @@ export const DocumentCameraCapture: React.FC<DocumentCameraCaptureProps> = ({
           <button
             type="button"
             onClick={() => setMode('camera')}
-            className={`flex-1 py-1.5 rounded-lg flex items-center justify-center gap-1.5 transition-all ${
+            className={`flex-1 h-[42px] rounded-lg flex items-center justify-center gap-2 transition-all ${
               mode === 'camera' ? 'bg-white text-[#0a332c] shadow-xs' : 'text-slate-600'
             }`}
           >
@@ -318,7 +312,7 @@ export const DocumentCameraCapture: React.FC<DocumentCameraCaptureProps> = ({
           />
           {/* Guide Overlay */}
           <div className="absolute inset-3 border-2 border-white/50 border-dashed rounded-lg pointer-events-none flex flex-col justify-between p-2">
-            <span className="text-[10px] text-white/90 bg-black/60 px-2 py-0.5 rounded-md self-start font-medium">
+            <span className="text-[11px] text-white/90 bg-black/60 px-2 py-0.5 rounded-md self-start font-medium">
               Frame document clearly
             </span>
           </div>
@@ -327,7 +321,7 @@ export const DocumentCameraCapture: React.FC<DocumentCameraCaptureProps> = ({
           <button
             type="button"
             onClick={capturePhoto}
-            className="absolute bottom-2.5 left-1/2 -translate-x-1/2 bg-white hover:bg-slate-100 text-[#0a332c] font-black px-4 py-1.5 rounded-full shadow-lg flex items-center gap-1.5 text-[12px] active:scale-95 transition-all"
+            className="absolute bottom-2.5 left-1/2 -translate-x-1/2 bg-white hover:bg-slate-100 text-[#0a332c] font-black h-[44px] px-5 rounded-full shadow-lg flex items-center gap-2 text-[13px] active:scale-95 transition-all"
           >
             <span className="material-symbols-outlined text-[16px]">camera</span>
             <span>Capture Photo</span>
@@ -339,12 +333,12 @@ export const DocumentCameraCapture: React.FC<DocumentCameraCaptureProps> = ({
       {mode === 'upload' && !capturedImage && (
         <div
           onClick={() => fileInputRef.current?.click()}
-          className="border-2 border-dashed border-slate-300 hover:border-emerald-500 rounded-xl p-5 sm:p-6 flex flex-col items-center justify-center text-center cursor-pointer bg-slate-50/70 hover:bg-emerald-50/30 transition-all gap-1.5"
+          className="border-2 border-dashed border-slate-300 hover:border-emerald-500 rounded-xl p-5 sm:p-6 flex flex-col items-center justify-center text-center cursor-pointer bg-slate-50/70 hover:bg-emerald-50/30 transition-all gap-2"
         >
           <span className="material-symbols-outlined text-[28px] text-slate-400">upload_file</span>
           <div>
-            <p className="text-[12px] font-bold text-slate-800">Click to pick photo from device</p>
-            <p className="text-[10px] text-slate-500">Auto-compressed to ~150KB for fast Drive storage</p>
+            <p className="text-[13px] font-bold text-slate-800">Click to pick photo from device</p>
+            <p className="text-[11px] text-slate-500">Auto-compressed to ~150KB for fast Drive storage</p>
           </div>
           <input
             ref={fileInputRef}
@@ -358,7 +352,7 @@ export const DocumentCameraCapture: React.FC<DocumentCameraCaptureProps> = ({
 
       {/* Compression loading indicator */}
       {isCompressing && (
-        <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-center gap-2 text-[12px] text-slate-600 font-bold animate-pulse">
+        <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-center gap-2 text-[14px] text-slate-600 font-bold animate-pulse">
           <span className="material-symbols-outlined text-[16px] animate-spin">sync</span>
           <span>Compressing & optimizing document image...</span>
         </div>
@@ -374,22 +368,22 @@ export const DocumentCameraCapture: React.FC<DocumentCameraCaptureProps> = ({
               className="w-full h-full object-contain"
             />
             {compressedSizeKb && (
-              <div className="absolute top-2 right-2 bg-black/75 text-white text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
-                <span className="material-symbols-outlined text-[12px] text-emerald-400">check</span>
+              <div className="absolute top-2 right-2 bg-black/75 text-white text-[11px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
+                <span className="material-symbols-outlined text-[13px] text-emerald-400">check</span>
                 <span>Optimized ({compressedSizeKb} KB)</span>
               </div>
             )}
           </div>
 
           {uploadStatus && (
-            <div className="p-2 bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-xl text-[11px] font-bold flex items-center gap-2">
+            <div className="p-2 bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-xl text-[12px] font-bold flex items-center gap-2">
               <span className="material-symbols-outlined text-[16px] text-emerald-700">check_circle</span>
               <span className="truncate">{uploadStatus}</span>
             </div>
           )}
 
           {targetDriveFolder && (
-            <div className="p-1.5 px-2 bg-slate-100 rounded-lg text-[10px] text-slate-600 font-mono truncate">
+            <div className="p-1.5 px-2 bg-slate-100 rounded-lg text-[11px] text-slate-600 font-mono truncate">
               📁 {targetDriveFolder}
             </div>
           )}
@@ -399,9 +393,9 @@ export const DocumentCameraCapture: React.FC<DocumentCameraCaptureProps> = ({
               href={uploadedUrl}
               target="_blank"
               rel="noreferrer"
-              className="p-2 bg-blue-50 border border-blue-200 text-blue-800 rounded-xl text-[11px] font-bold flex items-center justify-between hover:bg-blue-100 transition-colors"
+              className="p-2 bg-blue-50 border border-blue-200 text-blue-800 rounded-xl text-[12px] font-bold flex items-center justify-between hover:bg-blue-100 transition-colors"
             >
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-[16px]">drive_file_move</span>
                 <span>View file in Google Drive</span>
               </div>
@@ -415,7 +409,7 @@ export const DocumentCameraCapture: React.FC<DocumentCameraCaptureProps> = ({
                 type="button"
                 onClick={handleUseDirectPhoto}
                 disabled={isUploading || isCompressing}
-                className="flex-1 h-[38px] bg-emerald-800 hover:bg-emerald-900 disabled:opacity-50 text-white font-extrabold rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 text-[12px]"
+                className="flex-1 h-[46px] bg-emerald-800 hover:bg-emerald-900 disabled:opacity-50 text-white font-extrabold rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 text-[14px]"
               >
                 <span className="material-symbols-outlined text-[17px]">check_circle</span>
                 <span>Use This Photo</span>
@@ -425,7 +419,7 @@ export const DocumentCameraCapture: React.FC<DocumentCameraCaptureProps> = ({
                 type="button"
                 onClick={handleUploadToDrive}
                 disabled={isUploading || isCompressing}
-                className="flex-1 h-[38px] bg-blue-50 hover:bg-blue-100 border border-blue-300 text-blue-900 font-bold rounded-xl shadow-2xs transition-all flex items-center justify-center gap-1.5 text-[11px]"
+                className="flex-1 h-[46px] bg-blue-50 hover:bg-blue-100 border border-blue-300 text-blue-900 font-bold rounded-xl shadow-2xs transition-all flex items-center justify-center gap-2 text-[12px]"
               >
                 <span className="material-symbols-outlined text-[16px] text-blue-700">cloud_upload</span>
                 <span>{isUploading ? 'Uploading...' : 'Save to Drive'}</span>
@@ -437,7 +431,7 @@ export const DocumentCameraCapture: React.FC<DocumentCameraCaptureProps> = ({
                 type="button"
                 onClick={retakePhoto}
                 disabled={isUploading}
-                className="flex-1 h-[32px] bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-[11px] transition-colors"
+                className="flex-1 h-[42px] bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-[12px] transition-colors"
               >
                 Retake / Select Different Photo
               </button>
@@ -445,7 +439,7 @@ export const DocumentCameraCapture: React.FC<DocumentCameraCaptureProps> = ({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="px-4 h-[32px] bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-xl text-[11px] transition-colors"
+                  className="px-4 h-[42px] bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-xl text-[12px] transition-colors"
                 >
                   Done
                 </button>
@@ -456,7 +450,7 @@ export const DocumentCameraCapture: React.FC<DocumentCameraCaptureProps> = ({
       )}
 
       {errorMessage && (
-        <div className="p-2 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-[11px] font-medium flex items-center gap-1.5">
+        <div className="p-2 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-[12px] font-medium flex items-center gap-2">
           <span className="material-symbols-outlined text-[15px] text-rose-600 shrink-0">error</span>
           <span className="leading-tight">{errorMessage}</span>
         </div>

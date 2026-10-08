@@ -17,7 +17,6 @@ import {
   Expense, 
   MaintenanceTicket, 
   StaffContact, 
-  BulkGroup, 
   Notice, 
   WhatsAppTemplate 
 } from '../types';
@@ -53,7 +52,6 @@ export interface AppSyncData {
   expenses: Expense[];
   maintenanceTickets: MaintenanceTicket[];
   staffContacts: StaffContact[];
-  bulkGroups: BulkGroup[];
   notices: Notice[];
   whatsappTemplates: WhatsAppTemplate[];
   isDemoReset?: boolean;

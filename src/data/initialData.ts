@@ -1,4 +1,4 @@
-import { Room, Tenant, RentPayment, Expense, Income, MaintenanceTicket, Notice, StaffContact, BulkGroup, WhatsAppTemplate } from '../types';
+import { Room, Tenant, RentPayment, Expense, Income, MaintenanceTicket, Notice, StaffContact, WhatsAppTemplate } from '../types';
 
 export const OWNER_PHONE = '86106 53352';
 export const OWNER_PHONE_INTL = '+91 86106 53352';
@@ -6,7 +6,6 @@ export const PG_NAME = "Agam Men's PG & Stay";
 export const OWNER_UPI_ID = '8610653352@okaxis';
 
 // Clean defaults: 0 rooms, 0 tenants, 0 mock records
-export const INITIAL_BULK_GROUPS: BulkGroup[] = [];
 export const INITIAL_ROOMS: Room[] = [];
 export const INITIAL_TENANTS: Tenant[] = [];
 export const INITIAL_RENT_PAYMENTS: RentPayment[] = [];
@@ -24,14 +23,6 @@ export const INITIAL_WA_TEMPLATES: WhatsAppTemplate[] = [
     category: 'individual',
     isDefault: true,
     template: `*AGAM MEN'S PG & STAY - RENT REMINDER*\n\nDear *{name}* (Room {room}, {bed}),\n\nThis is a friendly reminder that your monthly accommodation fee of *₹{rent}* is due on *{due_date}*.\n\n💳 *UPI ID:* {upi_id}\n📱 *GPay / PhonePe / Paytm:* {owner_phone}\n🏨 *PG:* {pg_name}\n\nKindly complete the payment and share the transaction screenshot. Thank you for your cooperation!\n- Management, {pg_name}`
-  },
-  {
-    id: 'tmpl-2',
-    title: 'Company / Hotel Monthly Accommodation Invoice',
-    topic: 'Company Invoice',
-    category: 'group',
-    isDefault: true,
-    template: `*AGAM MEN'S PG & STAY - CORPORATE ACCOMMODATION INVOICE*\n\nTo: *{company} Management*\nAttention: *{contact_person}*\nGroup: *{group_name}* ({count} Residents)\nBilling Period: *{month_year}*\n\n🏨 *Accommodation Summary:*\n• Number of staying staff: *{count}*\n• Monthly rate per bed: *₹{rate_per_person}*\n• Total Amount Payable: *₹{total_rent}*\n\n🏦 *Payment Details:*\n• UPI VPA: *{upi_id}*\n• Mobile: *{owner_phone}*\n\nKindly process the month-end billing transfer. Detailed resident attendance sheet available upon request.\n\nWarm regards,\n*Agam Men's PG & Stay Management*`
   },
   {
     id: 'tmpl-3',

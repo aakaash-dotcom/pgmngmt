@@ -81,28 +81,28 @@ export const RoomsScreen: React.FC<RoomsScreenProps> = ({
     switch (room.status) {
       case 'empty':
         return (
-          <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-800 text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-emerald-200">
+          <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-800 text-[11px] font-extrabold px-2 py-0.5 rounded-full border border-emerald-200">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
             Vacant ({room.capacity} Free)
           </span>
         );
       case 'partial':
         return (
-          <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-900 text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-amber-200">
+          <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-900 text-[11px] font-extrabold px-2 py-0.5 rounded-full border border-amber-200">
             <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
             {room.capacity - room.occupied} Bed Free
           </span>
         );
       case 'full':
         return (
-          <span className="inline-flex items-center gap-1 bg-slate-100 text-slate-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-slate-200">
+          <span className="inline-flex items-center gap-1 bg-slate-100 text-slate-700 text-[11px] font-bold px-2 py-0.5 rounded-full border border-slate-200">
             Full (0 Free)
           </span>
         );
       case 'maintenance':
         return (
-          <span className="inline-flex items-center gap-1 bg-rose-50 text-rose-800 text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-rose-200">
-            <span className="material-symbols-outlined text-[12px]">build</span>
+          <span className="inline-flex items-center gap-1 bg-rose-50 text-rose-800 text-[11px] font-extrabold px-2 py-0.5 rounded-full border border-rose-200">
+            <span className="material-symbols-outlined text-[13px]">build</span>
             Maintenance
           </span>
         );
@@ -110,22 +110,22 @@ export const RoomsScreen: React.FC<RoomsScreenProps> = ({
   };
 
   return (
-    <div className="flex flex-col gap-3 pb-20 max-w-7xl mx-auto px-3 sm:px-4 pt-1.5">
+    <div className="flex flex-col gap-4 pb-20 max-w-7xl mx-auto px-3 sm:px-4 pt-1.5">
       {/* Top Action & Stat Bar */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-3 shadow-xs flex items-center justify-between gap-2">
+      <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <div className="bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-xl px-3 py-1.5 flex items-center gap-1.5">
+          <div className="bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-xl px-3 py-1.5 flex items-center gap-2">
             <span className="material-symbols-outlined text-[16px] text-emerald-700">bed</span>
-            <span className="text-[12px] font-black">{availableBeds} Available Beds</span>
+            <span className="text-[13px] font-black">{availableBeds} Available Beds</span>
           </div>
-          <div className="bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-3 py-1.5 flex items-center gap-1.5">
-            <span className="text-[12px] font-bold">{rooms.length} Rooms</span>
+          <div className="bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-3 py-1.5 flex items-center gap-2">
+            <span className="text-[13px] font-bold">{rooms.length} Rooms</span>
           </div>
         </div>
 
         <button
           onClick={onAddRoom}
-          className="h-[36px] px-3.5 bg-[#0a332c] hover:bg-[#0f4239] text-white font-extrabold rounded-xl text-[12px] flex items-center gap-1.5 shadow-2xs transition-colors shrink-0"
+          className="h-[46px] px-3.5 bg-[#0a332c] hover:bg-[#0f4239] text-white font-extrabold rounded-xl text-[13px] flex items-center gap-2 shadow-2xs transition-colors shrink-0"
         >
           <span className="material-symbols-outlined text-[18px]">add</span>
           <span>Add Room</span>
@@ -133,7 +133,7 @@ export const RoomsScreen: React.FC<RoomsScreenProps> = ({
       </div>
 
       {/* Search & Multi-Filters Toolbar */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-3 shadow-xs flex flex-col gap-2.5">
+      <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs flex flex-col gap-3">
         {/* Search Bar */}
         <div className="relative w-full">
           <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">
@@ -144,7 +144,7 @@ export const RoomsScreen: React.FC<RoomsScreenProps> = ({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search room # or resident..."
-            className="w-full h-[38px] pl-9 pr-4 bg-slate-50 border border-slate-200 rounded-xl text-[13px] text-slate-900 font-medium placeholder-slate-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
+            className="w-full h-[46px] pl-10 pr-4 bg-slate-50 border border-slate-200 rounded-xl text-[13px] text-slate-900 font-medium placeholder-slate-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
           />
           {searchQuery && (
             <button
@@ -158,14 +158,14 @@ export const RoomsScreen: React.FC<RoomsScreenProps> = ({
 
         {/* Sharing Filters Scrollable Pills */}
         <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-0.5">
             {sharingOptions.map((opt) => {
               const active = sharingFilter === opt.value;
               return (
                 <button
                   key={opt.value}
                   onClick={() => setSharingFilter(opt.value)}
-                  className={`h-[28px] px-2.5 rounded-lg text-[11px] font-extrabold whitespace-nowrap transition-all select-none ${
+                  className={`h-[42px] px-3.5 rounded-lg text-[13px] font-extrabold whitespace-nowrap transition-all select-none ${
                     active
                       ? 'bg-slate-900 text-white shadow-2xs'
                       : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200'
@@ -179,12 +179,12 @@ export const RoomsScreen: React.FC<RoomsScreenProps> = ({
         </div>
 
         {/* Status, AC & Floor Chips */}
-        <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-100 text-[11px]">
+        <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-100 text-[12px]">
           {/* Status Pills */}
           <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg">
             <button
               onClick={() => setStatusFilter('all')}
-              className={`px-2 py-1 rounded-md font-bold transition-colors ${
+              className={`h-[38px] px-3 rounded-md font-bold transition-colors ${
                 statusFilter === 'all' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-600'
               }`}
             >
@@ -192,7 +192,7 @@ export const RoomsScreen: React.FC<RoomsScreenProps> = ({
             </button>
             <button
               onClick={() => setStatusFilter('vacant')}
-              className={`px-2 py-1 rounded-md font-bold transition-colors ${
+              className={`h-[38px] px-3 rounded-md font-bold transition-colors ${
                 statusFilter === 'vacant' ? 'bg-sky-700 text-white shadow-2xs' : 'text-slate-600'
               }`}
             >
@@ -200,7 +200,7 @@ export const RoomsScreen: React.FC<RoomsScreenProps> = ({
             </button>
             <button
               onClick={() => setStatusFilter('available')}
-              className={`px-2 py-1 rounded-md font-bold transition-colors ${
+              className={`h-[38px] px-3 rounded-md font-bold transition-colors ${
                 statusFilter === 'available' ? 'bg-emerald-700 text-white shadow-2xs' : 'text-slate-600'
               }`}
             >
@@ -208,7 +208,7 @@ export const RoomsScreen: React.FC<RoomsScreenProps> = ({
             </button>
             <button
               onClick={() => setStatusFilter('full')}
-              className={`px-2 py-1 rounded-md font-bold transition-colors ${
+              className={`h-[38px] px-3 rounded-md font-bold transition-colors ${
                 statusFilter === 'full' ? 'bg-slate-800 text-white shadow-2xs' : 'text-slate-600'
               }`}
             >
@@ -216,7 +216,7 @@ export const RoomsScreen: React.FC<RoomsScreenProps> = ({
             </button>
             <button
               onClick={() => setStatusFilter('maintenance')}
-              className={`px-2 py-1 rounded-md font-bold transition-colors ${
+              className={`h-[38px] px-3 rounded-md font-bold transition-colors ${
                 statusFilter === 'maintenance' ? 'bg-rose-600 text-white shadow-2xs' : 'text-slate-600'
               }`}
             >
@@ -228,7 +228,7 @@ export const RoomsScreen: React.FC<RoomsScreenProps> = ({
           <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg">
             <button
               onClick={() => setAcFilter('all')}
-              className={`px-2 py-1 rounded-md font-bold ${
+              className={`h-[38px] px-3 rounded-md font-bold ${
                 acFilter === 'all' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-600'
               }`}
             >
@@ -236,7 +236,7 @@ export const RoomsScreen: React.FC<RoomsScreenProps> = ({
             </button>
             <button
               onClick={() => setAcFilter('AC')}
-              className={`px-2 py-1 rounded-md font-bold ${
+              className={`h-[38px] px-3 rounded-md font-bold ${
                 acFilter === 'AC' ? 'bg-sky-700 text-white shadow-2xs' : 'text-slate-600'
               }`}
             >
@@ -244,7 +244,7 @@ export const RoomsScreen: React.FC<RoomsScreenProps> = ({
             </button>
             <button
               onClick={() => setAcFilter('Non-AC')}
-              className={`px-2 py-1 rounded-md font-bold ${
+              className={`h-[38px] px-3 rounded-md font-bold ${
                 acFilter === 'Non-AC' ? 'bg-amber-600 text-white shadow-2xs' : 'text-slate-600'
               }`}
             >
@@ -256,7 +256,7 @@ export const RoomsScreen: React.FC<RoomsScreenProps> = ({
           <select
             value={floorFilter}
             onChange={(e) => setFloorFilter(e.target.value)}
-            className="h-[28px] px-2 bg-slate-50 border border-slate-200 rounded-lg text-[11px] font-bold text-slate-700 focus:outline-none"
+            className="h-[42px] px-3 bg-slate-50 border border-slate-200 rounded-lg text-[12px] font-bold text-slate-700 focus:outline-none"
           >
             <option value="all">All Floors</option>
             <option value="1">1st Floor</option>
@@ -280,7 +280,7 @@ export const RoomsScreen: React.FC<RoomsScreenProps> = ({
           return (
             <div
               key={room.id}
-              className={`bg-white border rounded-2xl p-4 shadow-2xs transition-all flex flex-col justify-between gap-3 ${
+              className={`bg-white border rounded-2xl p-5 shadow-2xs transition-all flex flex-col justify-between gap-4 ${
                 isMaintenance
                   ? 'border-rose-200 bg-rose-50/20'
                   : isFull
@@ -297,7 +297,7 @@ export const RoomsScreen: React.FC<RoomsScreenProps> = ({
                         Room {room.number}
                       </h3>
                       <span
-                        className={`text-[10px] font-extrabold px-2 py-0.5 rounded-md ${
+                        className={`text-[11px] font-extrabold px-2 py-0.5 rounded-md ${
                           room.type === 'AC'
                             ? 'bg-blue-50 text-blue-800 border border-blue-200'
                             : 'bg-amber-50 text-amber-800 border border-amber-200'
@@ -305,18 +305,18 @@ export const RoomsScreen: React.FC<RoomsScreenProps> = ({
                       >
                         {room.type}
                       </span>
-                      <span className="text-[11px] text-slate-500 font-semibold">
+                      <span className="text-[12px] text-slate-500 font-semibold">
                         Floor {room.floor}
                       </span>
                     </div>
 
                     <div className="mt-1 flex items-center gap-2">
-                      <span className="text-[12px] font-extrabold text-[#0a332c]">
+                      <span className="text-[13px] font-extrabold text-[#0a332c]">
                         ₹{room.perBedRent.toLocaleString('en-IN')}{' '}
-                        <span className="text-[10px] font-normal text-slate-500">/ bed / mo</span>
+                        <span className="text-[11px] font-normal text-slate-500">/ bed / mo</span>
                       </span>
                       <span>•</span>
-                      <span className="text-[11px] font-bold text-slate-700">
+                      <span className="text-[12px] font-bold text-slate-700">
                         {room.capacity === 1 ? 'Single Room' : `${room.capacity}-Sharing`}
                       </span>
                     </div>
@@ -327,12 +327,12 @@ export const RoomsScreen: React.FC<RoomsScreenProps> = ({
 
                 {/* Bed Allocation Visual Chips (B1, B2, B3, ...) */}
                 <div className="mt-3 bg-slate-50 p-2.5 rounded-xl border border-slate-200/80">
-                  <div className="flex justify-between items-center text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                  <div className="flex justify-between items-center text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
                     <span>Bed Layout</span>
                     <span>{room.occupied}/{room.capacity} Occupied</span>
                   </div>
 
-                  <div className="grid grid-cols-4 sm:grid-cols-5 gap-1.5">
+                  <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
                     {Array.from({ length: room.capacity }).map((_, index) => {
                       const bedTag = `B${index + 1}`;
                       const tenantForBed = roomTenants.find((t) => t.bedNumber === bedTag) || (index < room.occupants.length ? { name: room.occupants[index] } : null);
@@ -341,14 +341,14 @@ export const RoomsScreen: React.FC<RoomsScreenProps> = ({
                       return (
                         <div
                           key={index}
-                          className={`p-1.5 rounded-lg border text-center flex flex-col justify-center min-h-[44px] transition-all ${
+                          className={`p-1.5 rounded-lg border text-center flex flex-col justify-center min-h-[48px] transition-all ${
                             isOccupied
                               ? 'bg-[#0a332c]/5 border-[#0a332c]/20 text-[#0a332c]'
                               : 'bg-white border-dashed border-emerald-300 text-emerald-700'
                           }`}
                         >
-                          <span className="text-[10px] font-black leading-none block">{bedTag}</span>
-                          <span className="text-[10px] font-bold truncate mt-0.5 leading-tight block">
+                          <span className="text-[11px] font-black leading-none block">{bedTag}</span>
+                          <span className="text-[11px] font-bold truncate mt-0.5 leading-tight block">
                             {isOccupied ? tenantForBed.name.split(' ')[0] : 'Vacant'}
                           </span>
                         </div>
@@ -359,7 +359,7 @@ export const RoomsScreen: React.FC<RoomsScreenProps> = ({
 
                 {/* Maintenance Warning */}
                 {isMaintenance && room.maintenanceReason && (
-                  <div className="mt-2.5 bg-rose-100/60 border border-rose-200 text-rose-900 p-2 rounded-lg text-[11px] font-medium flex items-center gap-1.5">
+                  <div className="mt-2.5 bg-rose-100/60 border border-rose-200 text-rose-900 p-2 rounded-lg text-[12px] font-medium flex items-center gap-2">
                     <span className="material-symbols-outlined text-[16px] text-rose-700 shrink-0">warning</span>
                     <span>{room.maintenanceReason}</span>
                   </div>
@@ -370,7 +370,7 @@ export const RoomsScreen: React.FC<RoomsScreenProps> = ({
               <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
                 <button
                   onClick={() => onEditRoom(room)}
-                  className="h-[36px] px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-[12px] flex items-center gap-1 transition-colors"
+                  className="h-[46px] px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-[13px] flex items-center gap-1 transition-colors"
                 >
                   <span className="material-symbols-outlined text-[16px]">tune</span>
                   <span>Config</span>
@@ -379,7 +379,7 @@ export const RoomsScreen: React.FC<RoomsScreenProps> = ({
                 {freeBeds > 0 && !isMaintenance ? (
                   <button
                     onClick={() => onAddTenantToRoom(room.number)}
-                    className="h-[36px] px-3.5 bg-[#0a332c] hover:bg-[#0f4239] text-white font-extrabold rounded-xl text-[12px] flex items-center gap-1 transition-colors shadow-2xs"
+                    className="h-[46px] px-3.5 bg-[#0a332c] hover:bg-[#0f4239] text-white font-extrabold rounded-xl text-[13px] flex items-center gap-1 transition-colors shadow-2xs"
                   >
                     <span className="material-symbols-outlined text-[16px]">person_add</span>
                     <span>Admit ({freeBeds} Free)</span>
@@ -387,7 +387,7 @@ export const RoomsScreen: React.FC<RoomsScreenProps> = ({
                 ) : (
                   <button
                     onClick={() => onSelectRoom(room)}
-                    className="h-[36px] px-3 bg-slate-50 hover:bg-slate-100 text-slate-600 font-semibold rounded-xl text-[12px] flex items-center gap-1 transition-colors"
+                    className="h-[46px] px-3 bg-slate-50 hover:bg-slate-100 text-slate-600 font-semibold rounded-xl text-[13px] flex items-center gap-1 transition-colors"
                   >
                     <span className="material-symbols-outlined text-[16px]">visibility</span>
                     <span>View Details</span>
@@ -408,7 +408,7 @@ export const RoomsScreen: React.FC<RoomsScreenProps> = ({
             <h4 className="font-extrabold text-[16px] text-slate-800">
               {rooms.length === 0 ? 'No rooms added yet' : 'No rooms match your filter criteria'}
             </h4>
-            <p className="text-[12px] text-slate-500 mt-0.5 max-w-sm">
+            <p className="text-[13px] text-slate-500 mt-0.5 max-w-sm">
               {rooms.length === 0
                 ? 'Start setting up your PG by adding rooms one by one with sharing capacity and rent.'
                 : 'Try clearing the search or changing the sharing capacity and status filters.'}
@@ -417,7 +417,7 @@ export const RoomsScreen: React.FC<RoomsScreenProps> = ({
           {rooms.length === 0 ? (
             <button
               onClick={onAddRoom}
-              className="mt-1 h-[40px] px-5 bg-[#0a332c] hover:bg-[#0f4239] text-white font-extrabold rounded-xl text-[13px] flex items-center gap-1.5 shadow-sm transition-colors"
+              className="mt-1 h-[48px] px-5 bg-[#0a332c] hover:bg-[#0f4239] text-white font-extrabold rounded-xl text-[13px] flex items-center gap-2 shadow-sm transition-colors"
             >
               <span className="material-symbols-outlined text-[18px]">add</span>
               <span>Add Your First Room</span>
@@ -431,7 +431,7 @@ export const RoomsScreen: React.FC<RoomsScreenProps> = ({
                 setAcFilter('all');
                 setFloorFilter('all');
               }}
-              className="text-[12px] font-bold text-[#0a332c] underline hover:text-[#0f4239]"
+              className="text-[13px] font-bold text-[#0a332c] underline hover:text-[#0f4239]"
             >
               Reset All Filters
             </button>

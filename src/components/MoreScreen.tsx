@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { MaintenanceTicket, StaffContact, StaffRole, Tenant, Room, RentPayment, Expense, Income, BulkGroup } from '../types';
+import { MaintenanceTicket, StaffContact, StaffRole, Tenant, Room, RentPayment, Expense, Income } from '../types';
 import { OWNER_PHONE, OWNER_PHONE_INTL, PG_NAME } from '../data/initialData';
 import { AddStaffModal } from './modals/AddStaffModal';
 import { GoogleWorkspaceHub } from './GoogleWorkspaceHub';
@@ -22,7 +22,6 @@ interface MoreScreenProps {
   rentPayments?: RentPayment[];
   expenses?: Expense[];
   incomes?: Income[];
-  bulkGroups?: BulkGroup[];
   onAddTicket?: (ticket: MaintenanceTicket) => void;
   onUpdateTicketStatus?: (id: string, status: MaintenanceTicket['status']) => void;
   onAddStaff?: (staff: Omit<StaffContact, 'id'>, editId?: string) => void;
@@ -41,7 +40,6 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
   rentPayments = [],
   expenses = [],
   incomes = [],
-  bulkGroups = [],
   onAddTicket,
   onUpdateTicketStatus,
   onAddStaff,
@@ -193,13 +191,6 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
     window.open(url, '_blank');
   };
 
-  // Share to WhatsApp Group or general
-  const handleShareToWhatsAppGroup = () => {
-    const message = generateTenantMessage();
-    const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
-    window.open(url, '_blank');
-  };
-
   // Copy notice text to clipboard
   const handleCopyNoticeText = async (tenant?: Tenant) => {
     const message = generateTenantMessage(tenant);
@@ -272,12 +263,12 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 pt-1.5 pb-24 flex flex-col gap-3">
+    <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 pt-1.5 pb-24 flex flex-col gap-4">
       {/* Navigation Sub-Tabs (One Word) */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 bg-white rounded-2xl p-1 shadow-xs border border-slate-200 gap-1 text-[12px]">
+      <div className="grid grid-cols-2 sm:grid-cols-4 bg-white rounded-2xl p-1 shadow-xs border border-slate-200 gap-1 text-[13px]">
         <button
           onClick={() => setActiveSection('phonebook')}
-          className={`py-2 px-2.5 text-center font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+          className={`h-[44px] px-3 text-center font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${
             activeSection === 'phonebook'
               ? 'bg-slate-900 text-white shadow-2xs'
               : 'text-slate-600 hover:bg-slate-50'
@@ -289,7 +280,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
 
         <button
           onClick={() => setActiveSection('whatsapp')}
-          className={`py-2 px-2.5 text-center font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+          className={`h-[44px] px-3 text-center font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${
             activeSection === 'whatsapp'
               ? 'bg-emerald-800 text-white shadow-2xs'
               : 'text-slate-600 hover:bg-slate-50'
@@ -301,7 +292,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
 
         <button
           onClick={() => setActiveSection('integrations')}
-          className={`py-2 px-2.5 text-center font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+          className={`h-[44px] px-3 text-center font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${
             activeSection === 'integrations'
               ? 'bg-sky-800 text-white shadow-2xs'
               : 'text-slate-600 hover:bg-slate-50'
@@ -313,7 +304,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
 
         <button
           onClick={() => setActiveSection('maintenance')}
-          className={`py-2 px-2.5 text-center font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+          className={`h-[44px] px-3 text-center font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${
             activeSection === 'maintenance'
               ? 'bg-rose-600 text-white shadow-2xs'
               : 'text-slate-600 hover:bg-slate-50'
@@ -326,7 +317,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
 
       {/* Copy Toast Feedback */}
       {copyFeedback && (
-        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white text-[13px] font-bold px-4 py-2 rounded-full shadow-2xl flex items-center gap-2 border border-slate-700 animate-in fade-in">
+        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white text-[13px] font-bold h-[44px] px-5 rounded-full shadow-2xl flex items-center gap-2 border border-slate-700 animate-in fade-in">
           <span className="material-symbols-outlined text-[18px] text-emerald-400">check_circle</span>
           <span>{copyFeedback}</span>
         </div>
@@ -338,7 +329,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
           {/* Top Action Bar */}
           <div className="flex items-center justify-between gap-2 bg-white p-3 rounded-2xl border border-slate-200 shadow-xs">
             <div className="flex items-center gap-2">
-              <span className="text-[12px] font-bold text-slate-700">{staffContacts.length} Contacts</span>
+              <span className="text-[13px] font-bold text-slate-700">{staffContacts.length} Contacts</span>
             </div>
 
             <button
@@ -346,7 +337,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
                 setEditingStaff(null);
                 setIsStaffModalOpen(true);
               }}
-              className="bg-slate-900 hover:bg-slate-800 text-white px-3.5 py-1.5 rounded-xl text-[12px] font-black flex items-center gap-1 shadow-2xs transition-all"
+              className="bg-slate-900 hover:bg-slate-800 text-white h-[40px] px-4 rounded-xl text-[13px] font-black flex items-center gap-1 shadow-2xs transition-all"
             >
               <span className="material-symbols-outlined text-[16px]">person_add</span>
               <span>Add Staff</span>
@@ -364,7 +355,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
                 placeholder="Search staff by name or role..."
                 value={searchStaff}
                 onChange={(e) => setSearchStaff(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-[13px] bg-slate-50 focus:bg-white focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 outline-none transition-all"
+                className="w-full pl-10 pr-4 h-[46px] border border-slate-200 rounded-xl text-[13px] bg-slate-50 focus:bg-white focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 outline-none transition-all"
               />
               {searchStaff && (
                 <button
@@ -377,10 +368,10 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
             </div>
 
             {/* Role Filter Chips */}
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-[11px] font-bold scrollbar-none">
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 text-[12px] font-bold scrollbar-none">
               <button
                 onClick={() => setSelectedRoleFilter('all')}
-                className={`px-3 py-1.5 rounded-lg shrink-0 transition-colors ${
+                className={`h-[40px] px-4 rounded-lg shrink-0 transition-colors ${
                   selectedRoleFilter === 'all'
                     ? 'bg-blue-600 text-white'
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
@@ -395,7 +386,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
                   <button
                     key={r}
                     onClick={() => setSelectedRoleFilter(r)}
-                    className={`px-3 py-1.5 rounded-lg shrink-0 transition-colors flex items-center gap-1 ${
+                    className={`h-[40px] px-4 rounded-lg shrink-0 transition-colors flex items-center gap-1 ${
                       selectedRoleFilter === r
                         ? 'bg-blue-600 text-white'
                         : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
@@ -443,20 +434,20 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
               return (
                 <div
                   key={staff.id}
-                  className="bg-white rounded-2xl border border-slate-200 p-4 shadow-2xs flex flex-col justify-between gap-3 hover:border-blue-300 transition-all group"
+                  className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs flex flex-col justify-between gap-4 hover:border-blue-300 transition-all group"
                 >
                   <div>
                     {/* Top Row: Name, Role Badge, Actions */}
                     <div className="flex justify-between items-start gap-2">
                       <div className="flex items-start gap-3">
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center border shrink-0 ${meta.bg}`}>
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center border shrink-0 ${meta.bg}`}>
                           <span className="material-symbols-outlined text-[20px]">{meta.icon}</span>
                         </div>
                         <div>
                           <h3 className="text-[15px] font-bold text-slate-900 leading-tight">
                             {staff.name}
                           </h3>
-                          <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-md border mt-1 ${meta.bg}`}>
+                          <span className={`inline-block text-[11px] font-bold px-2 py-0.5 rounded-md border mt-1 ${meta.bg}`}>
                             {staff.role}
                           </span>
                         </div>
@@ -468,7 +459,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
                             setEditingStaff(staff);
                             setIsStaffModalOpen(true);
                           }}
-                          className="w-7 h-7 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-700 flex items-center justify-center transition-colors"
+                          className="w-10 h-10 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-700 flex items-center justify-center transition-colors"
                           title="Edit contact"
                         >
                           <span className="material-symbols-outlined text-[16px]">edit</span>
@@ -480,7 +471,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
                                 onDeleteStaff(staff.id);
                               }
                             }}
-                            className="w-7 h-7 rounded-lg hover:bg-rose-50 text-slate-400 hover:text-rose-600 flex items-center justify-center transition-colors"
+                            className="w-10 h-10 rounded-lg hover:bg-rose-50 text-slate-400 hover:text-rose-600 flex items-center justify-center transition-colors"
                             title="Delete contact"
                           >
                             <span className="material-symbols-outlined text-[16px]">delete</span>
@@ -499,7 +490,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
                       </div>
 
                       {staff.alternatePhone && (
-                        <div className="flex items-center gap-2 text-[12px] text-slate-500 font-medium">
+                        <div className="flex items-center gap-2 text-[13px] text-slate-500 font-medium">
                           <span className="material-symbols-outlined text-[15px] text-slate-400">phone_iphone</span>
                           <a href={`tel:${staff.alternatePhone.replace(/[^0-9]/g, '')}`} className="hover:text-blue-600 hover:underline">
                             Alt: +91 {staff.alternatePhone}
@@ -510,7 +501,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
 
                     {/* Notes / Duties */}
                     {staff.notes && (
-                      <p className="text-[12px] text-slate-600 font-medium mt-2 bg-slate-50 p-2.5 rounded-xl border border-slate-100 leading-relaxed">
+                      <p className="text-[13px] text-slate-600 font-medium mt-2 bg-slate-50 p-2.5 rounded-xl border border-slate-100 leading-relaxed">
                         {staff.notes}
                       </p>
                     )}
@@ -520,7 +511,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
                   <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100">
                     <a
                       href={`tel:${cleanPhone}`}
-                      className="py-2 px-3 bg-blue-50 hover:bg-blue-100 text-blue-700 text-[12px] font-bold rounded-xl flex items-center justify-center gap-1.5 transition-colors border border-blue-100 active:scale-95"
+                      className="h-[40px] px-4 bg-blue-50 hover:bg-blue-100 text-blue-700 text-[13px] font-bold rounded-xl flex items-center justify-center gap-2 transition-colors border border-blue-100 active:scale-95"
                     >
                       <span className="material-symbols-outlined text-[16px]">call</span>
                       <span>Call Now</span>
@@ -532,7 +523,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
                       )}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="py-2 px-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-[12px] font-bold rounded-xl flex items-center justify-center gap-1.5 transition-colors border border-emerald-200 active:scale-95"
+                      className="h-[40px] px-4 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-[13px] font-bold rounded-xl flex items-center justify-center gap-2 transition-colors border border-emerald-200 active:scale-95"
                     >
                       <span className="material-symbols-outlined text-[16px]">chat</span>
                       <span>WhatsApp</span>
@@ -548,7 +539,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
                 <p className="text-[14px] font-bold text-slate-800">
                   {staffContacts.length === 0 ? 'No staff contacts added yet' : `No staff found matching "${searchStaff}"`}
                 </p>
-                <p className="text-[12px] text-slate-500 max-w-sm">
+                <p className="text-[13px] text-slate-500 max-w-sm">
                   {staffContacts.length === 0
                     ? 'Add cleaners, cooks, plumbers, electricians, and water tanker suppliers for 1-click calls and WhatsApp.'
                     : 'Try clearing the search query or selecting "All Roles".'}
@@ -558,7 +549,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
                     setEditingStaff(null);
                     setIsStaffModalOpen(true);
                   }}
-                  className="mt-2 h-[38px] px-4 bg-[#0a332c] hover:bg-[#0f4239] text-white font-bold text-[12px] rounded-xl flex items-center gap-1.5 shadow-xs transition-colors"
+                  className="mt-2 h-[46px] px-4 bg-[#0a332c] hover:bg-[#0f4239] text-white font-bold text-[13px] rounded-xl flex items-center gap-2 shadow-xs transition-colors"
                 >
                   <span className="material-symbols-outlined text-[16px]">person_add</span>
                   <span>Add First Staff Contact</span>
@@ -575,7 +566,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
           <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs flex flex-col gap-3.5">
             {/* Template Selector Pills */}
             <div>
-              <label className="block text-[11px] font-black text-slate-700 uppercase tracking-wider mb-2">
+              <label className="block text-[12px] font-black text-slate-700 uppercase tracking-wider mb-2">
                 1. Select Notice Template
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -591,8 +582,8 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
                     payments
                   </span>
                   <div>
-                    <div className="text-[12px] font-bold">Rent Due Alert</div>
-                    <div className="text-[11px] text-slate-500">Includes UPI & room dues</div>
+                    <div className="text-[13px] font-bold">Rent Due Alert</div>
+                    <div className="text-[12px] text-slate-500">Includes UPI & room dues</div>
                   </div>
                 </button>
 
@@ -608,8 +599,8 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
                     water_drop
                   </span>
                   <div>
-                    <div className="text-[12px] font-bold">Water Supply / Tank</div>
-                    <div className="text-[11px] text-slate-500">Refill & tank wash timing</div>
+                    <div className="text-[13px] font-bold">Water Supply / Tank</div>
+                    <div className="text-[12px] text-slate-500">Refill & tank wash timing</div>
                   </div>
                 </button>
 
@@ -625,8 +616,8 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
                     mop
                   </span>
                   <div>
-                    <div className="text-[12px] font-bold">Cleaning Schedule</div>
-                    <div className="text-[11px] text-slate-500">Housekeeping floor visits</div>
+                    <div className="text-[13px] font-bold">Cleaning Schedule</div>
+                    <div className="text-[12px] text-slate-500">Housekeeping floor visits</div>
                   </div>
                 </button>
 
@@ -642,8 +633,8 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
                     wifi
                   </span>
                   <div>
-                    <div className="text-[12px] font-bold">Wi-Fi & Power</div>
-                    <div className="text-[11px] text-slate-500">Router / power repair</div>
+                    <div className="text-[13px] font-bold">Wi-Fi & Power</div>
+                    <div className="text-[12px] text-slate-500">Router / power repair</div>
                   </div>
                 </button>
 
@@ -659,8 +650,8 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
                     lock_clock
                   </span>
                   <div>
-                    <div className="text-[12px] font-bold">10:30 PM Gate Lock</div>
-                    <div className="text-[11px] text-slate-500">Night curfew reminder</div>
+                    <div className="text-[13px] font-bold">10:30 PM Gate Lock</div>
+                    <div className="text-[12px] text-slate-500">Night curfew reminder</div>
                   </div>
                 </button>
 
@@ -676,8 +667,8 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
                     edit_note
                   </span>
                   <div>
-                    <div className="text-[12px] font-bold">Custom Message</div>
-                    <div className="text-[11px] text-slate-500">Type any notice</div>
+                    <div className="text-[13px] font-bold">Custom Message</div>
+                    <div className="text-[12px] text-slate-500">Type any notice</div>
                   </div>
                 </button>
               </div>
@@ -686,7 +677,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
             {/* Template Editor Box with Save & Reset */}
             <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 flex flex-col gap-2">
               <div className="flex justify-between items-center">
-                <label className="text-[12px] font-bold text-slate-700 flex items-center gap-1.5">
+                <label className="text-[13px] font-bold text-slate-700 flex items-center gap-2">
                   <span className="material-symbols-outlined text-[16px] text-[#0a332c]">edit_note</span>
                   <span>Notice Template Message:</span>
                 </label>
@@ -694,14 +685,14 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
                   <button
                     onClick={handleResetTemplate}
                     type="button"
-                    className="text-[11px] font-semibold text-slate-500 hover:text-slate-700 px-2 py-1 rounded hover:bg-slate-200"
+                    className="text-[12px] font-semibold text-slate-500 hover:text-slate-700 px-2 py-1 rounded hover:bg-slate-200"
                   >
                     Reset
                   </button>
                   <button
                     onClick={handleSaveTemplates}
                     type="button"
-                    className="text-[11px] font-extrabold bg-[#0a332c] text-white px-2.5 py-1 rounded-lg hover:bg-[#0f4239] shadow-2xs flex items-center gap-1"
+                    className="text-[12px] font-extrabold bg-[#0a332c] text-white h-[38px] px-3 rounded-lg hover:bg-[#0f4239] shadow-2xs flex items-center gap-1"
                   >
                     <span className="material-symbols-outlined text-[14px]">save</span>
                     <span>Save Template</span>
@@ -713,9 +704,9 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
                 value={noticeTemplates[selectedTemplate] || ''}
                 onChange={(e) => handleUpdateCurrentTemplate(e.target.value)}
                 placeholder="Type your message here... Use {name}, {room}, {balance} as variables."
-                className="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-[12px] font-mono leading-relaxed outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-500/20"
+                className="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-[13px] font-mono leading-relaxed outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-500/20"
               />
-              <div className="flex items-center justify-between text-[11px] text-slate-500">
+              <div className="flex items-center justify-between text-[12px] text-slate-500">
                 <span>Variables available: <code className="bg-slate-200 px-1 py-0.5 rounded text-slate-700 font-bold">{'{name}'}</code>, <code className="bg-slate-200 px-1 py-0.5 rounded text-slate-700 font-bold">{'{room}'}</code>, <code className="bg-slate-200 px-1 py-0.5 rounded text-slate-700 font-bold">{'{balance}'}</code></span>
                 {copyFeedback && (
                   <span className="text-emerald-700 font-bold animate-pulse">{copyFeedback}</span>
@@ -726,15 +717,15 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
             {/* Message Preview Box */}
             <div className="bg-emerald-50/60 border border-emerald-200 rounded-xl p-4 flex flex-col gap-2">
               <div className="flex justify-between items-center pb-2 border-b border-emerald-200/60">
-                <span className="text-[11px] font-extrabold text-emerald-800 uppercase tracking-wider flex items-center gap-1.5">
+                <span className="text-[12px] font-extrabold text-emerald-800 uppercase tracking-wider flex items-center gap-2">
                   <span className="material-symbols-outlined text-[16px]">visibility</span>
                   WhatsApp Message Preview
                 </span>
-                <span className="text-[11px] text-emerald-700 font-bold">
+                <span className="text-[12px] text-emerald-700 font-bold">
                   Auto-populates resident name & room
                 </span>
               </div>
-              <pre className="text-[12px] text-slate-800 whitespace-pre-wrap font-sans leading-relaxed bg-white/70 p-3 rounded-lg border border-emerald-100">
+              <pre className="text-[13px] text-slate-800 whitespace-pre-wrap font-sans leading-relaxed bg-white/70 p-3 rounded-lg border border-emerald-100">
                 {generateTenantMessage(targetTenants[0])}
               </pre>
             </div>
@@ -742,13 +733,13 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
             {/* Target Recipients Selector */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pt-1">
               <div>
-                <label className="block text-[12px] font-bold text-slate-700 mb-1">
+                <label className="block text-[13px] font-bold text-slate-700 mb-1">
                   2. Choose Target Residents:
                 </label>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setRecipientFilter('all')}
-                    className={`px-3 py-1.5 rounded-xl text-[12px] font-bold transition-all ${
+                    className={`h-[40px] px-4 rounded-xl text-[13px] font-bold transition-all ${
                       recipientFilter === 'all'
                         ? 'bg-blue-600 text-white shadow-2xs'
                         : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
@@ -759,7 +750,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
 
                   <button
                     onClick={() => setRecipientFilter('unpaid')}
-                    className={`px-3 py-1.5 rounded-xl text-[12px] font-bold transition-all ${
+                    className={`h-[40px] px-4 rounded-xl text-[13px] font-bold transition-all ${
                       recipientFilter === 'unpaid'
                         ? 'bg-rose-600 text-white shadow-2xs'
                         : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
@@ -770,7 +761,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
 
                   <button
                     onClick={() => setRecipientFilter('room')}
-                    className={`px-3 py-1.5 rounded-xl text-[12px] font-bold transition-all ${
+                    className={`h-[40px] px-4 rounded-xl text-[13px] font-bold transition-all ${
                       recipientFilter === 'room'
                         ? 'bg-purple-600 text-white shadow-2xs'
                         : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
@@ -783,7 +774,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
                     <select
                       value={selectedRoomNumber}
                       onChange={(e) => setSelectedRoomNumber(Number(e.target.value))}
-                      className="px-2.5 py-1.5 bg-white border border-slate-300 rounded-xl text-[12px] font-bold text-slate-800 outline-none"
+                      className="h-[40px] px-3 bg-white border border-slate-300 rounded-xl text-[13px] font-bold text-slate-800 outline-none"
                     >
                       {rooms.map((r) => (
                         <option key={r.id} value={r.number}>
@@ -795,22 +786,14 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
                 </div>
               </div>
 
-              {/* Group Share & Copy Buttons */}
+              {/* Copy Button */}
               <div className="flex items-center gap-2 w-full sm:w-auto">
                 <button
                   onClick={() => handleCopyNoticeText(targetTenants[0])}
-                  className="flex-1 sm:flex-initial px-3.5 py-2 bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-800 rounded-xl text-[12px] font-bold flex items-center justify-center gap-1.5 transition-all"
+                  className="flex-1 sm:flex-initial h-[44px] px-4 bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-800 rounded-xl text-[13px] font-bold flex items-center justify-center gap-2 transition-all"
                 >
                   <span className="material-symbols-outlined text-[16px]">content_copy</span>
                   <span>Copy Text</span>
-                </button>
-
-                <button
-                  onClick={handleShareToWhatsAppGroup}
-                  className="flex-1 sm:flex-initial px-4 py-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl text-[12px] font-bold flex items-center justify-center gap-1.5 shadow-xs transition-all"
-                >
-                  <span className="material-symbols-outlined text-[18px]">groups</span>
-                  <span>Share to PG Group</span>
                 </button>
               </div>
             </div>
@@ -828,14 +811,14 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
                     className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200 hover:bg-slate-100/70 transition-colors"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-800 font-extrabold text-[12px] flex items-center justify-center shrink-0">
+                      <div className="w-11 h-11 rounded-lg bg-blue-100 text-blue-800 font-extrabold text-[13px] flex items-center justify-center shrink-0">
                         {t.roomNumber}
                       </div>
                       <div>
                         <div className="text-[13px] font-bold text-slate-900 leading-tight">
                           {t.name}
                         </div>
-                        <div className="text-[11px] text-slate-500 font-medium">
+                        <div className="text-[12px] text-slate-500 font-medium">
                           +91 {t.phone} • Rent: ₹{t.rentAmount} ({t.status})
                         </div>
                       </div>
@@ -843,7 +826,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
 
                     <button
                       onClick={() => handleOpenWhatsApp(t)}
-                      className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl text-[12px] font-bold flex items-center gap-1.5 shadow-2xs transition-all"
+                      className="h-[42px] px-4 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl text-[13px] font-bold flex items-center gap-2 shadow-2xs transition-all"
                     >
                       <span className="material-symbols-outlined text-[16px]">send</span>
                       <span>Send WhatsApp</span>
@@ -874,7 +857,6 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
             incomes={incomes}
             staffContacts={staffContacts}
             maintenanceTickets={maintenanceTickets}
-            bulkGroups={bulkGroups}
             onRestoreBackup={onRestoreBackup}
             onSyncCloudSql={onSyncCloudSql}
             isSyncingCloudSql={isSyncingCloudSql}
@@ -884,23 +866,23 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
           <div className="bg-white border border-emerald-200 rounded-2xl p-5 shadow-2xs flex flex-col gap-4">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center font-bold">
+                <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center font-bold">
                   <span className="material-symbols-outlined text-[24px]">add_photo_alternate</span>
                 </div>
                 <div>
                   <h3 className="text-[15px] font-extrabold text-slate-900 leading-tight flex items-center gap-2">
                     <span>Google Apps Script Drive Uploader</span>
                     {appsScriptUrl ? (
-                      <span className="text-[11px] font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
+                      <span className="text-[12px] font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
                         Connected
                       </span>
                     ) : (
-                      <span className="text-[11px] font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">
+                      <span className="text-[12px] font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">
                         Ready to Connect
                       </span>
                     )}
                   </h3>
-                  <p className="text-[12px] text-slate-500 font-medium">
+                  <p className="text-[13px] text-slate-500 font-medium">
                     Upload tenant ID proofs and contract photos directly to your personal Google Drive with 0 login errors.
                   </p>
                 </div>
@@ -909,7 +891,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
               <button
                 type="button"
                 onClick={() => setIsAppsScriptModalOpen(true)}
-                className="h-[38px] px-4 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-[12px] flex items-center gap-2 shadow-xs transition-colors shrink-0"
+                className="h-[46px] px-4 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-[13px] flex items-center gap-2 shadow-xs transition-colors shrink-0"
               >
                 <span className="material-symbols-outlined text-[16px]">code</span>
                 <span>{appsScriptUrl ? 'Manage Script URL' : 'Setup Apps Script (Get Code)'}</span>
@@ -917,11 +899,11 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
             </div>
 
             {appsScriptUrl && (
-              <div className="p-3 bg-emerald-50/70 border border-emerald-200 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-[12px]">
+              <div className="p-3 bg-emerald-50/70 border border-emerald-200 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-[13px]">
                 <div className="flex items-center gap-2 truncate max-w-full">
                   <span className="material-symbols-outlined text-emerald-700 text-[18px] shrink-0">check_circle</span>
                   <span className="text-emerald-950 font-medium truncate">
-                    Web App URL: <code className="font-mono bg-emerald-100/70 px-1 py-0.5 rounded text-[11px]">{appsScriptUrl}</code>
+                    Web App URL: <code className="font-mono bg-emerald-100/70 px-1 py-0.5 rounded text-[12px]">{appsScriptUrl}</code>
                   </span>
                 </div>
                 <button
@@ -954,13 +936,13 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
             <div className="bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-200 rounded-2xl p-4 flex flex-col gap-3">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                 <div>
-                  <h3 className="text-[14px] font-extrabold text-indigo-950 flex items-center gap-1.5">
+                  <h3 className="text-[14px] font-extrabold text-indigo-950 flex items-center gap-2">
                     <span className="material-symbols-outlined text-indigo-600 text-[18px]">
                       content_paste
                     </span>
                     1-Click Copy for Google Sheets (Paste in Columns)
                   </h3>
-                  <p className="text-[12px] text-indigo-800 font-medium">
+                  <p className="text-[13px] text-indigo-800 font-medium">
                     Click copy below, then press <strong>Ctrl+V / Cmd+V</strong> directly in any Google Sheet cell!
                   </p>
                 </div>
@@ -969,7 +951,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
                   href="https://sheets.new"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[12px] font-bold flex items-center gap-1 shadow-xs transition-all"
+                  className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[13px] font-bold flex items-center gap-1 shadow-xs transition-all"
                 >
                   <span className="material-symbols-outlined text-[16px]">open_in_new</span>
                   <span>Open sheets.new</span>
@@ -985,10 +967,10 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
                   }}
                   className="p-2.5 bg-white hover:bg-indigo-100/50 border border-indigo-200 rounded-xl text-left transition-colors"
                 >
-                  <span className="text-[12px] font-bold text-indigo-900 block">
+                  <span className="text-[13px] font-bold text-indigo-900 block">
                     📋 Copy Tenants Table
                   </span>
-                  <span className="text-[10px] text-slate-500 block mt-0.5">
+                  <span className="text-[11px] text-slate-500 block mt-0.5">
                     {tenants.length} tenant records
                   </span>
                 </button>
@@ -1001,10 +983,10 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
                   }}
                   className="p-2.5 bg-white hover:bg-indigo-100/50 border border-indigo-200 rounded-xl text-left transition-colors"
                 >
-                  <span className="text-[12px] font-bold text-indigo-900 block">
+                  <span className="text-[13px] font-bold text-indigo-900 block">
                     📋 Copy Balance Sheet
                   </span>
-                  <span className="text-[10px] text-slate-500 block mt-0.5">
+                  <span className="text-[11px] text-slate-500 block mt-0.5">
                     Incomes & Expenses
                   </span>
                 </button>
@@ -1017,10 +999,10 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
                   }}
                   className="p-2.5 bg-white hover:bg-indigo-100/50 border border-indigo-200 rounded-xl text-left transition-colors"
                 >
-                  <span className="text-[12px] font-bold text-indigo-900 block">
+                  <span className="text-[13px] font-bold text-indigo-900 block">
                     📋 Copy Expenses Log
                   </span>
-                  <span className="text-[10px] text-slate-500 block mt-0.5">
+                  <span className="text-[11px] text-slate-500 block mt-0.5">
                     {expenses.length} bills recorded
                   </span>
                 </button>
@@ -1033,10 +1015,10 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
                   }}
                   className="p-2.5 bg-white hover:bg-indigo-100/50 border border-indigo-200 rounded-xl text-left transition-colors"
                 >
-                  <span className="text-[12px] font-bold text-indigo-900 block">
+                  <span className="text-[13px] font-bold text-indigo-900 block">
                     📋 Copy Staff Phonebook
                   </span>
-                  <span className="text-[10px] text-slate-500 block mt-0.5">
+                  <span className="text-[11px] text-slate-500 block mt-0.5">
                     {staffContacts.length} numbers
                   </span>
                 </button>
@@ -1053,7 +1035,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
                 <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex justify-between items-center">
                   <div>
                     <h4 className="text-[14px] font-bold text-slate-900">Tenants & Dues Master</h4>
-                    <p className="text-[12px] text-slate-500 font-medium">
+                    <p className="text-[13px] text-slate-500 font-medium">
                       Names, phone numbers, room, rent, deposits & check-in dates
                     </p>
                   </div>
@@ -1063,7 +1045,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
                       downloadFile(data.csv, `Agam_PG_Tenants_${new Date().toISOString().split('T')[0]}.csv`);
                       showCopyToast('Downloaded Agam_PG_Tenants.csv');
                     }}
-                    className="p-2.5 bg-white hover:bg-slate-100 border border-slate-300 rounded-xl text-slate-800 font-bold text-[12px] flex items-center gap-1.5 transition-colors shrink-0"
+                    className="p-2.5 bg-white hover:bg-slate-100 border border-slate-300 rounded-xl text-slate-800 font-bold text-[13px] flex items-center gap-2 transition-colors shrink-0"
                   >
                     <span className="material-symbols-outlined text-[18px] text-emerald-600">download</span>
                     <span>Download CSV</span>
@@ -1073,7 +1055,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
                 <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex justify-between items-center">
                   <div>
                     <h4 className="text-[14px] font-bold text-slate-900">Financial Ledger & P&L</h4>
-                    <p className="text-[12px] text-slate-500 font-medium">
+                    <p className="text-[13px] text-slate-500 font-medium">
                       All monthly income inflows, expenses & net profit calculations
                     </p>
                   </div>
@@ -1083,7 +1065,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
                       downloadFile(data.csv, `Agam_PG_Financial_Ledger_${new Date().toISOString().split('T')[0]}.csv`);
                       showCopyToast('Downloaded Agam_PG_Financial_Ledger.csv');
                     }}
-                    className="p-2.5 bg-white hover:bg-slate-100 border border-slate-300 rounded-xl text-slate-800 font-bold text-[12px] flex items-center gap-1.5 transition-colors shrink-0"
+                    className="p-2.5 bg-white hover:bg-slate-100 border border-slate-300 rounded-xl text-slate-800 font-bold text-[13px] flex items-center gap-2 transition-colors shrink-0"
                   >
                     <span className="material-symbols-outlined text-[18px] text-emerald-600">download</span>
                     <span>Download CSV</span>
@@ -1093,7 +1075,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
                 <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex justify-between items-center">
                   <div>
                     <h4 className="text-[14px] font-bold text-slate-900">Operating Expenses Log</h4>
-                    <p className="text-[12px] text-slate-500 font-medium">
+                    <p className="text-[13px] text-slate-500 font-medium">
                       Electricity, water tanker, Wi-Fi, salaries & maintenance bills
                     </p>
                   </div>
@@ -1103,7 +1085,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
                       downloadFile(data.csv, `Agam_PG_Expenses_${new Date().toISOString().split('T')[0]}.csv`);
                       showCopyToast('Downloaded Agam_PG_Expenses.csv');
                     }}
-                    className="p-2.5 bg-white hover:bg-slate-100 border border-slate-300 rounded-xl text-slate-800 font-bold text-[12px] flex items-center gap-1.5 transition-colors shrink-0"
+                    className="p-2.5 bg-white hover:bg-slate-100 border border-slate-300 rounded-xl text-slate-800 font-bold text-[13px] flex items-center gap-2 transition-colors shrink-0"
                   >
                     <span className="material-symbols-outlined text-[18px] text-emerald-600">download</span>
                     <span>Download CSV</span>
@@ -1113,7 +1095,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
                 <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex justify-between items-center">
                   <div>
                     <h4 className="text-[14px] font-bold text-slate-900">Staff & Vendor Directory</h4>
-                    <p className="text-[12px] text-slate-500 font-medium">
+                    <p className="text-[13px] text-slate-500 font-medium">
                       Cleaner, plumber, electrician & tanker contact records
                     </p>
                   </div>
@@ -1123,7 +1105,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
                       downloadFile(data.csv, `Agam_PG_Staff_Phonebook_${new Date().toISOString().split('T')[0]}.csv`);
                       showCopyToast('Downloaded Agam_PG_Staff_Phonebook.csv');
                     }}
-                    className="p-2.5 bg-white hover:bg-slate-100 border border-slate-300 rounded-xl text-slate-800 font-bold text-[12px] flex items-center gap-1.5 transition-colors shrink-0"
+                    className="p-2.5 bg-white hover:bg-slate-100 border border-slate-300 rounded-xl text-slate-800 font-bold text-[13px] flex items-center gap-2 transition-colors shrink-0"
                   >
                     <span className="material-symbols-outlined text-[18px] text-emerald-600">download</span>
                     <span>Download CSV</span>
@@ -1135,11 +1117,11 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
             {/* Google Drive Full Backup & Restore */}
             <div className="pt-4 border-t border-slate-200 flex flex-col gap-3">
               <div>
-                <h3 className="text-[14px] font-extrabold text-slate-900 flex items-center gap-1.5">
+                <h3 className="text-[14px] font-extrabold text-slate-900 flex items-center gap-2">
                   <span className="material-symbols-outlined text-blue-600 text-[18px]">cloud_sync</span>
                   Google Drive / Cloud Backup & Restore
                 </h3>
-                <p className="text-[12px] text-slate-500 font-medium">
+                <p className="text-[13px] text-slate-500 font-medium">
                   Save a full snapshot of your PG data to keep in Google Drive or transfer to a new device
                 </p>
               </div>
@@ -1171,11 +1153,11 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
               <div className="pt-4 border-t border-rose-100 flex flex-col gap-3 bg-rose-50/40 p-3.5 rounded-2xl border">
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <h3 className="text-[14px] font-extrabold text-rose-900 flex items-center gap-1.5">
+                    <h3 className="text-[14px] font-extrabold text-rose-900 flex items-center gap-2">
                       <span className="material-symbols-outlined text-rose-600 text-[18px]">delete_sweep</span>
                       Clear Demo Data & Start Clean
                     </h3>
-                    <p className="text-[12px] text-rose-700/80 font-medium mt-0.5">
+                    <p className="text-[13px] text-rose-700/80 font-medium mt-0.5">
                       Removes all sample rooms, staff contacts, residents, and mock payment entries so you can input your real PG configuration.
                     </p>
                   </div>
@@ -1191,7 +1173,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
                       onResetData();
                     }
                   }}
-                  className="w-full sm:w-auto self-start py-2.5 px-4 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-[12px] font-bold flex items-center justify-center gap-1.5 shadow-xs transition-all"
+                  className="w-full sm:w-auto self-start py-2.5 px-4 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-[13px] font-bold flex items-center justify-center gap-2 shadow-xs transition-all"
                 >
                   <span className="material-symbols-outlined text-[16px]">restart_alt</span>
                   <span>Clear All Demo Data (Rooms, Staff & Tenants)</span>
@@ -1207,14 +1189,14 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
         <section className="flex flex-col gap-3">
           <div className="flex justify-between items-center bg-white p-3 rounded-2xl border border-slate-200 shadow-xs">
             <div className="flex items-center gap-2">
-              <span className="text-[12px] font-bold text-slate-700">
+              <span className="text-[13px] font-bold text-slate-700">
                 {maintenanceTickets.filter((t) => t.status !== 'resolved').length} Pending Repairs
               </span>
             </div>
 
             <button
               onClick={() => setShowAddTicketModal(true)}
-              className="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-[12px] font-black flex items-center gap-1 shadow-2xs transition-all"
+              className="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-[13px] font-black flex items-center gap-1 shadow-2xs transition-all"
             >
               <span className="material-symbols-outlined text-[16px]">add</span>
               <span>New Ticket</span>
@@ -1225,12 +1207,12 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
             {maintenanceTickets.map((ticket) => (
               <div
                 key={ticket.id}
-                className="bg-white rounded-2xl border border-slate-200 p-4 shadow-2xs flex flex-col justify-between gap-3 hover:border-blue-300 transition-all"
+                className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs flex flex-col justify-between gap-4 hover:border-blue-300 transition-all"
               >
                 <div>
                   <div className="flex justify-between items-start mb-2">
                     <div className="flex items-center gap-2">
-                      <span className="bg-blue-50 text-blue-800 border border-blue-100 text-[11px] font-bold px-2 py-0.5 rounded-md">
+                      <span className="bg-blue-50 text-blue-800 border border-blue-100 text-[12px] font-bold px-2 py-0.5 rounded-md">
                         Room {ticket.roomNumber}
                       </span>
                       <h3 className="text-[15px] font-bold text-slate-900 leading-tight">
@@ -1239,7 +1221,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
                     </div>
 
                     <span
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                      className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
                         ticket.status === 'in-progress'
                           ? 'bg-amber-100 text-amber-900'
                           : ticket.status === 'resolved'
@@ -1257,7 +1239,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
                 </div>
 
                 <div className="pt-2 border-t border-slate-100 flex flex-col gap-2">
-                  <div className="flex items-center justify-between text-[11px] text-slate-500 font-semibold">
+                  <div className="flex items-center justify-between text-[12px] text-slate-500 font-semibold">
                     <span>Reported: {ticket.reportedDate} ({ticket.reportedBy})</span>
                     {ticket.cost && (
                       <span className="text-slate-800 font-bold">Est: ₹{ticket.cost}</span>
@@ -1267,7 +1249,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
                   {onUpdateTicketStatus && ticket.status !== 'resolved' && (
                     <button
                       onClick={() => onUpdateTicketStatus(ticket.id, 'resolved')}
-                      className="w-full py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[12px] font-bold rounded-xl transition-colors border border-emerald-200 flex items-center justify-center gap-1 active:scale-95"
+                      className="w-full py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[13px] font-bold rounded-xl transition-colors border border-emerald-200 flex items-center justify-center gap-1 active:scale-95"
                     >
                       <span className="material-symbols-outlined text-[16px]">check_circle</span>
                       <span>Mark Issue as Resolved</span>
@@ -1292,11 +1274,11 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
 
                 <form onSubmit={handleCreateTicket} className="flex flex-col gap-3 text-[13px]">
                   <div>
-                    <label className="block font-bold text-slate-700 text-[12px] mb-1">Room #</label>
+                    <label className="block font-bold text-slate-700 text-[13px] mb-1">Room #</label>
                     <select
                       value={newTicketRoom}
                       onChange={(e) => setNewTicketRoom(e.target.value)}
-                      className="w-full h-[40px] px-3 border border-slate-300 rounded-xl bg-white font-medium"
+                      className="w-full h-[48px] px-3 border border-slate-300 rounded-xl bg-white font-medium"
                     >
                       {rooms.map((r) => (
                         <option key={r.id} value={r.number}>
@@ -1307,19 +1289,19 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
                   </div>
 
                   <div>
-                    <label className="block font-bold text-slate-700 text-[12px] mb-1">Issue Title *</label>
+                    <label className="block font-bold text-slate-700 text-[13px] mb-1">Issue Title *</label>
                     <input
                       type="text"
                       required
                       value={newTicketTitle}
                       onChange={(e) => setNewTicketTitle(e.target.value)}
                       placeholder="e.g. Bathroom Tap Leaking or Geyser Switch"
-                      className="w-full h-[40px] px-3 border border-slate-300 rounded-xl"
+                      className="w-full h-[48px] px-3 border border-slate-300 rounded-xl"
                     />
                   </div>
 
                   <div>
-                    <label className="block font-bold text-slate-700 text-[12px] mb-1">Description</label>
+                    <label className="block font-bold text-slate-700 text-[13px] mb-1">Description</label>
                     <textarea
                       rows={3}
                       value={newTicketDesc}
@@ -1330,12 +1312,12 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
                   </div>
 
                   <div>
-                    <label className="block font-bold text-slate-700 text-[12px] mb-1">Est. Repair Cost (₹)</label>
+                    <label className="block font-bold text-slate-700 text-[13px] mb-1">Est. Repair Cost (₹)</label>
                     <input
                       type="number"
                       value={newTicketCost}
                       onChange={(e) => setNewTicketCost(Number(e.target.value))}
-                      className="w-full h-[40px] px-3 border border-slate-300 rounded-xl"
+                      className="w-full h-[48px] px-3 border border-slate-300 rounded-xl"
                     />
                   </div>
 

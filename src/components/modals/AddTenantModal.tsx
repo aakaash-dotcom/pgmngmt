@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Room, Tenant, BulkGroup } from '../../types';
+import { Room, Tenant } from '../../types';
 import { DocumentCameraCapture } from '../DocumentCameraCapture';
 
 interface AddTenantModalProps {
   isOpen: boolean;
   onClose: () => void;
   rooms?: Room[];
-  bulkGroups?: BulkGroup[];
   onAddTenant: (tenant: Omit<Tenant, 'id' | 'balance' | 'status' | 'isActive'>) => void;
   defaultRoomNumber?: number;
 }
@@ -37,7 +36,6 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({
   isOpen,
   onClose,
   rooms = [],
-  bulkGroups = [],
   onAddTenant,
   defaultRoomNumber,
 }) => {
@@ -46,10 +44,19 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({
     (r) => r.status !== 'full' && r.occupied < r.capacity && r.status !== 'maintenance'
   );
 
+  // When opened from a specific room (e.g. "Admit" on Room 103), lock the
+  // selector to that room so only it is shown and pre-selected.
+  const lockedRoom =
+    defaultRoomNumber !== undefined ? rooms.find((r) => r.number === defaultRoomNumber) : undefined;
+
   const initialRoom =
+    lockedRoom ||
     rooms.find((r) => r.number === defaultRoomNumber && r.occupied < r.capacity) ||
     vacantRooms[0] ||
     rooms[0];
+
+  // Rooms offered in the selector: only the locked room when opened from one
+  const roomOptions = lockedRoom ? [lockedRoom] : vacantRooms;
 
   const todayStr = getTodayString();
   const nextMonthDueStr = getNextMonthSameDayString(todayStr);
@@ -80,14 +87,6 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({
   const [activeScanner, setActiveScanner] = useState<'id' | 'terms' | null>(null);
   const [editingLinkFor, setEditingLinkFor] = useState<'id' | 'terms' | null>(null);
   const [manualLinkInput, setManualLinkInput] = useState<string>('');
-
-  // Bulk Group / Corporate Contract Fields
-  const [isBulkContract, setIsBulkContract] = useState(false);
-  const [selectedGroup, setSelectedGroup] = useState<string>('Nepal Hotel Hospitality Group');
-  const [customGroupName, setCustomGroupName] = useState('');
-  const [companyName, setCompanyName] = useState('The Royal Grand Hotel & Banquets');
-  const [companyContactPhone, setCompanyContactPhone] = useState('+91 98451 12345');
-  const [billingModel, setBillingModel] = useState<'individual_monthly' | 'company_end_of_month'>('company_end_of_month');
 
   // Reset/sync when modal opens
   useEffect(() => {
@@ -135,22 +134,6 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({
     setSecurityDeposit(val);
   };
 
-  const handleGroupSelect = (grpName: string) => {
-    setSelectedGroup(grpName);
-    const foundGrp = bulkGroups.find((g) => g.name === grpName);
-    if (foundGrp) {
-      setCompanyName(foundGrp.companyName);
-      setCompanyContactPhone(foundGrp.contactPhone);
-      setBillingModel(foundGrp.billingModel);
-      if (foundGrp.rentPerPerson) {
-        setRentAmount(foundGrp.rentPerPerson);
-        if (!isDepositManuallyEdited) {
-          setSecurityDeposit(foundGrp.advancePerPerson || foundGrp.rentPerPerson);
-        }
-      }
-    }
-  };
-
   const formatIndianPhone = (val: string) => {
     let raw = val.replace(/\D/g, '');
     if (raw.startsWith('91') && raw.length > 10) {
@@ -181,10 +164,6 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({
     const finalPhone = cleanIndianPhoneForStorage(phone);
     const finalEmergencyPhone = emergencyPhone.trim() ? cleanIndianPhoneForStorage(emergencyPhone) : finalPhone;
 
-    const finalGroupName = isBulkContract
-      ? (selectedGroup === 'custom' ? customGroupName.trim() : selectedGroup)
-      : undefined;
-
     onAddTenant({
       name: name.trim(),
       phone: finalPhone,
@@ -193,18 +172,13 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({
       bedNumber: bedNumber.trim() || 'B1',
       rentAmount: Number(rentAmount),
       securityDeposit: Number(securityDeposit),
-      dueDate: isBulkContract && billingModel === 'company_end_of_month' ? getNextMonthSameDayString(checkInDate) : dueDate,
+      dueDate,
       checkInDate,
-      emergencyContact: emergencyContact.trim() || (isBulkContract ? 'Company Supervisor' : 'Parent / Guardian'),
+      emergencyContact: emergencyContact.trim() || 'Parent / Guardian',
       emergencyPhone: finalEmergencyPhone,
       idProofType,
       idProofNumber: idProofNumber.trim() || 'Verified at check-in',
       notes: notes.trim() || undefined,
-      isBulkContract,
-      groupName: finalGroupName,
-      companyName: isBulkContract ? companyName.trim() : undefined,
-      companyContactPhone: isBulkContract ? companyContactPhone.trim() : undefined,
-      billingModel: isBulkContract ? billingModel : 'individual_monthly',
       documentsCollected,
       idDocumentCollected: documentsCollected,
       agreementCollected,
@@ -215,10 +189,6 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({
     onClose();
   };
 
-  const currentGroupName = isBulkContract
-    ? (selectedGroup === 'custom' ? customGroupName.trim() : selectedGroup)
-    : undefined;
-
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4">
       <div className="fixed inset-0" onClick={onClose} />
@@ -227,12 +197,12 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({
         {/* Fixed Header */}
         <div className="bg-[#0a332c] text-white p-3.5 sm:p-4 px-4 sm:px-5 flex justify-between items-center shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-white/15 text-white border border-white/20 flex items-center justify-center">
+            <div className="w-11 h-11 rounded-xl bg-white/15 text-white border border-white/20 flex items-center justify-center">
               <span className="material-symbols-outlined text-[18px]">person_add</span>
             </div>
             <div>
               <h3 className="text-[15px] sm:text-[16px] font-extrabold leading-tight">Admit New Resident</h3>
-              <p className="text-[11px] text-emerald-100/80 font-medium">Add details & assign vacant room</p>
+              <p className="text-[12px] text-emerald-100/80 font-medium">Add details & assign vacant room</p>
             </div>
           </div>
           <button
@@ -246,157 +216,10 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({
 
         {/* Scrollable Form Body */}
         <form onSubmit={handleSubmit} className="p-3.5 sm:p-5 overflow-y-auto flex-1 min-h-0 flex flex-col gap-3.5 text-[13px]">
-          {/* Stay Category Switcher (Individual vs Bulk/Company) */}
-          <div className="bg-slate-100 p-1 rounded-xl flex gap-1 border border-slate-200">
-            <button
-              type="button"
-              onClick={() => setIsBulkContract(false)}
-              className={`flex-1 py-1.5 rounded-lg font-bold text-[12px] flex items-center justify-center gap-1.5 transition-all ${
-                !isBulkContract
-                  ? 'bg-white text-[#0a332c] shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <span className="material-symbols-outlined text-[15px]">person</span>
-              <span>Individual Resident</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsBulkContract(true)}
-              className={`flex-1 py-1.5 rounded-lg font-bold text-[12px] flex items-center justify-center gap-1.5 transition-all ${
-                isBulkContract
-                  ? 'bg-[#0a332c] text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <span className="material-symbols-outlined text-[15px]">groups</span>
-              <span>Bulk / Group Contract</span>
-            </button>
-          </div>
-
-          {/* Bulk Group & Company Section */}
-          {isBulkContract && (
-            <div className="bg-amber-50/60 border border-amber-200 rounded-xl p-3 flex flex-col gap-2.5">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-extrabold uppercase tracking-wider text-amber-900 flex items-center gap-1">
-                  <span className="material-symbols-outlined text-[14px] text-amber-700">corporate_fare</span>
-                  Corporate / Group Contract Details
-                </span>
-                <span className="text-[10px] font-bold bg-amber-200/80 text-amber-900 px-2 py-0.5 rounded-md">
-                  Hotel / Batch
-                </span>
-              </div>
-
-              <div>
-                <label className="block font-bold text-slate-700 text-[11px] mb-1">
-                  Group / Batch Name *
-                </label>
-                <select
-                  value={selectedGroup}
-                  onChange={(e) => handleGroupSelect(e.target.value)}
-                  className="w-full h-[36px] px-3 border border-amber-300 rounded-lg bg-white text-slate-900 font-bold focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-                >
-                  <option value="Nepal Hotel Hospitality Group">Nepal Hotel Hospitality Group</option>
-                  <option value="Apex IT Trainees Batch">Apex IT Trainees Batch</option>
-                  {bulkGroups.map((g) => (
-                    <option key={g.id} value={g.name}>
-                      {g.name} ({g.companyName})
-                    </option>
-                  ))}
-                  <option value="custom">+ Create New Group...</option>
-                </select>
-              </div>
-
-              {selectedGroup === 'custom' && (
-                <div>
-                  <label className="block font-bold text-slate-700 text-[11px] mb-1">
-                    New Group Title
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={customGroupName}
-                    onChange={(e) => setCustomGroupName(e.target.value)}
-                    placeholder="e.g. Grand Palace Banquets Batch 2"
-                    className="w-full h-[36px] px-3 border border-amber-300 rounded-lg bg-white text-slate-900 font-semibold focus:outline-none"
-                  />
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <div>
-                  <label className="block font-bold text-slate-700 text-[11px] mb-1">
-                    Company / Organization *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={companyName}
-                    onChange={(e) => setCompanyName(e.target.value)}
-                    placeholder="e.g. The Royal Grand Hotel"
-                    className="w-full h-[36px] px-3 border border-amber-300 rounded-lg bg-white text-slate-900 font-semibold focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block font-bold text-slate-700 text-[11px] mb-1">
-                    Coordinator / HR Mobile (10 Digits)
-                  </label>
-                  <div className="relative flex items-center">
-                    <div className="absolute left-0 top-0 bottom-0 px-2.5 bg-amber-100/70 border-r border-amber-300 rounded-l-lg flex items-center gap-1 text-amber-900 font-extrabold text-[11px] select-none pointer-events-none">
-                      <span>🇮🇳</span>
-                      <span>+91</span>
-                    </div>
-                    <input
-                      type="tel"
-                      value={companyContactPhone.replace(/^\+91\s*/, '')}
-                      onChange={(e) => setCompanyContactPhone(formatIndianPhone(e.target.value))}
-                      placeholder="98451 12345"
-                      maxLength={12}
-                      className="w-full h-[36px] pl-[68px] pr-3 border border-amber-300 rounded-lg bg-white text-slate-900 font-semibold focus:outline-none"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Billing Model for Bulk */}
-              <div className="bg-white p-2.5 rounded-lg border border-amber-200">
-                <label className="block font-bold text-slate-800 text-[11px] mb-1">
-                  Billing Arrangement
-                </label>
-                <div className="flex flex-col gap-1 text-[11px]">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="billingModel"
-                      checked={billingModel === 'company_end_of_month'}
-                      onChange={() => setBillingModel('company_end_of_month')}
-                      className="text-amber-600 focus:ring-amber-500"
-                    />
-                    <span className="font-semibold text-slate-800">
-                      <strong>Advance at Check-in</strong> • Company pays rent at Month End
-                    </span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="billingModel"
-                      checked={billingModel === 'individual_monthly'}
-                      onChange={() => setBillingModel('individual_monthly')}
-                      className="text-amber-600 focus:ring-amber-500"
-                    />
-                    <span className="font-semibold text-slate-800">
-                      Standard Monthly Rent by Resident
-                    </span>
-                  </label>
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* Personal Info */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             <div>
-              <label className="block font-bold text-slate-700 text-[11px] mb-1">
+              <label className="block font-bold text-slate-700 text-[12px] mb-1">
                 Full Name *
               </label>
               <input
@@ -405,15 +228,15 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g. Bikash Thapa"
-                className="w-full h-[38px] px-3 border border-slate-300 rounded-xl bg-white text-slate-900 font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-[#0a332c]"
+                className="w-full h-[46px] px-3 border border-slate-300 rounded-xl bg-white text-slate-900 font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-[#0a332c]"
               />
             </div>
             <div>
-              <label className="block font-bold text-slate-700 text-[11px] mb-1">
+              <label className="block font-bold text-slate-700 text-[12px] mb-1">
                 Mobile Number * (10 Digits)
               </label>
               <div className="relative flex items-center">
-                <div className="absolute left-0 top-0 bottom-0 px-2.5 bg-slate-100 border-r border-slate-300 rounded-l-xl flex items-center gap-1 text-slate-700 font-extrabold text-[12px] select-none pointer-events-none">
+                <div className="absolute left-0 top-0 bottom-0 px-2.5 bg-slate-100 border-r border-slate-300 rounded-l-xl flex items-center gap-1 text-slate-700 font-extrabold text-[13px] select-none pointer-events-none">
                   <span>🇮🇳</span>
                   <span>+91</span>
                 </div>
@@ -424,7 +247,7 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({
                   onChange={(e) => setPhone(formatIndianPhone(e.target.value))}
                   placeholder="98451 11201"
                   maxLength={12}
-                  className="w-full h-[38px] pl-[70px] pr-3 border border-slate-300 rounded-xl bg-white text-slate-900 font-bold text-[14px] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-[#0a332c]"
+                  className="w-full h-[46px] pl-[70px] pr-3 border border-slate-300 rounded-xl bg-white text-slate-900 font-bold text-[14px] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-[#0a332c]"
                 />
               </div>
             </div>
@@ -433,7 +256,7 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({
           {/* Room Assignment & Bed with Live Capacity Ratio (e.g., 3/4 or 1/2) */}
           <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 flex flex-col gap-3">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+              <span className="text-[12px] font-extrabold uppercase tracking-wider text-slate-800 flex items-center gap-2">
                 <span className="material-symbols-outlined text-[16px] text-[#0a332c]">meeting_room</span>
                 Room & Bed Availability
               </span>
@@ -442,7 +265,7 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({
                 if (!currentRoomObj) return null;
                 const freeCount = Math.max(0, currentRoomObj.capacity - currentRoomObj.occupied);
                 return (
-                  <span className={`text-[11px] font-black px-2 py-0.5 rounded-md flex items-center gap-1 ${
+                  <span className={`text-[12px] font-black px-2 py-0.5 rounded-md flex items-center gap-1 ${
                     freeCount > 0 
                       ? 'bg-emerald-100 text-emerald-900 border border-emerald-300' 
                       : 'bg-rose-100 text-rose-900 border border-rose-300'
@@ -456,8 +279,8 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               <div>
-                <label className="block font-bold text-slate-700 text-[11px] mb-1">
-                  Select Room (Occupancy / Total) *
+                <label className="block font-bold text-slate-700 text-[12px] mb-1">
+                  {lockedRoom ? 'Assigned Room (pre-selected)' : 'Select Room (Occupancy / Total) *'}
                 </label>
                 {rooms.length === 0 ? (
                   <div>
@@ -467,23 +290,24 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({
                       value={roomNumber || ''}
                       onChange={(e) => setRoomNumber(Number(e.target.value))}
                       placeholder="e.g. 101"
-                      className="w-full h-[40px] px-3 border border-slate-300 rounded-xl bg-white text-slate-900 font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                      className="w-full h-[48px] px-3 border border-slate-300 rounded-xl bg-white text-slate-900 font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                     />
-                    <p className="text-[10px] text-emerald-800 font-medium mt-1">
+                    <p className="text-[11px] text-emerald-800 font-medium mt-1">
                       💡 Enter room number directly, or create rooms in the <strong>Rooms</strong> tab.
                     </p>
                   </div>
-                ) : vacantRooms.length === 0 ? (
-                  <div className="p-2 bg-rose-50 text-rose-700 border border-rose-200 rounded-lg text-[11px] font-bold">
+                ) : roomOptions.length === 0 ? (
+                  <div className="p-2 bg-rose-50 text-rose-700 border border-rose-200 rounded-lg text-[12px] font-bold">
                     All registered rooms are currently full or in maintenance.
                   </div>
                 ) : (
                   <select
                     value={roomNumber}
                     onChange={(e) => handleRoomChange(Number(e.target.value))}
-                    className="w-full h-[40px] px-3 border border-slate-300 rounded-xl bg-white text-slate-900 font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-[#0a332c]"
+                    disabled={!!lockedRoom}
+                    className="w-full h-[48px] px-3 border border-slate-300 rounded-xl bg-white text-slate-900 font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-[#0a332c] disabled:bg-slate-100 disabled:text-slate-600"
                   >
-                    {vacantRooms.map((r) => {
+                    {roomOptions.map((r) => {
                       const freeBeds = r.capacity - r.occupied;
                       return (
                         <option 
@@ -499,17 +323,17 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 text-[11px] mb-1">
+                <label className="block font-bold text-slate-700 text-[12px] mb-1">
                   Bed Tag / Slot *
                 </label>
-                <div className="flex gap-1.5">
+                <div className="flex gap-2">
                   <input
                     type="text"
                     required
                     value={bedNumber}
                     onChange={(e) => setBedNumber(e.target.value)}
                     placeholder="e.g. B1, B2, B3"
-                    className="flex-1 h-[40px] px-3 border border-slate-300 rounded-xl bg-white text-slate-900 font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-[#0a332c]"
+                    className="flex-1 h-[48px] px-3 border border-slate-300 rounded-xl bg-white text-slate-900 font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-[#0a332c]"
                   />
                   {(() => {
                     const currentRoomObj = rooms.find((r) => r.number === Number(roomNumber));
@@ -519,7 +343,7 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({
                         type="button"
                         onClick={() => setBedNumber(`B${nextBedIndex}`)}
                         title="Auto-fill next available bed tag"
-                        className="px-2.5 h-[40px] bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-xl text-[11px] font-bold shrink-0 transition-colors"
+                        className="px-2.5 h-[48px] bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-xl text-[12px] font-bold shrink-0 transition-colors"
                       >
                         Auto (B{nextBedIndex})
                       </button>
@@ -549,7 +373,7 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({
                         setBedNumber(bedTag);
                       }
                     }}
-                    className={`flex-1 py-1.5 px-2 rounded-lg border text-center font-bold text-[11px] transition-all flex flex-col items-center justify-center ${
+                    className={`flex-1 py-1.5 px-2 rounded-lg border text-center font-bold text-[12px] transition-all flex flex-col items-center justify-center ${
                       isSelected
                         ? 'bg-[#0a332c] text-white border-[#0a332c] ring-2 ring-emerald-500/30'
                         : isBedOccupied
@@ -563,7 +387,7 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({
                       </span>
                       <span>{bedTag}</span>
                     </span>
-                    <span className="text-[9px] font-semibold">
+                    <span className="text-[10px] font-semibold">
                       {isBedOccupied ? 'Occupied' : isSelected ? 'Selected' : 'Available'}
                     </span>
                   </button>
@@ -571,12 +395,12 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({
               }
 
               return (
-                <div className="bg-white p-2.5 rounded-xl border border-slate-200 flex flex-col gap-1.5">
-                  <div className="flex justify-between items-center text-[10px] text-slate-500 font-bold uppercase">
+                <div className="bg-white p-2.5 rounded-xl border border-slate-200 flex flex-col gap-2">
+                  <div className="flex justify-between items-center text-[11px] text-slate-500 font-bold uppercase">
                     <span>Bed Slots in Room {currentRoomObj.number} ({occupied}/{total} Occupied):</span>
                     <span className="text-emerald-700 font-extrabold">{total - occupied} Bed(s) Free</span>
                   </div>
-                  <div className="flex gap-1.5">
+                  <div className="flex gap-2">
                     {slots}
                   </div>
                 </div>
@@ -587,17 +411,17 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({
           {/* Financials (Auto-Fill Security Deposit equal to Monthly Rent) */}
           <div className="bg-emerald-50/50 p-3 rounded-xl border border-emerald-200 flex flex-col gap-2">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-[#0a332c]">
+              <span className="text-[12px] font-bold uppercase tracking-wider text-[#0a332c]">
                 Rent & Advance Settings
               </span>
-              <span className="text-[10px] text-emerald-800 font-medium bg-emerald-100 px-2 py-0.5 rounded-md">
+              <span className="text-[11px] text-emerald-800 font-medium bg-emerald-100 px-2 py-0.5 rounded-md">
                 Deposit equal to monthly rent
               </span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               <div>
-                <label className="block font-bold text-slate-700 text-[11px] mb-1">
+                <label className="block font-bold text-slate-700 text-[12px] mb-1">
                   Monthly Rent (₹) *
                 </label>
                 <div className="relative">
@@ -609,13 +433,13 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({
                     step={50}
                     value={rentAmount}
                     onChange={(e) => handleRentChange(Number(e.target.value))}
-                    className="w-full h-[38px] pl-7 pr-3 border border-emerald-300 rounded-xl bg-white text-[#0a332c] font-black text-[15px] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-[#0a332c]"
+                    className="w-full h-[46px] pl-7 pr-3 border border-emerald-300 rounded-xl bg-white text-[#0a332c] font-black text-[15px] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-[#0a332c]"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 text-[11px] mb-1">
+                <label className="block font-bold text-slate-700 text-[12px] mb-1">
                   Advance / Deposit (₹) *
                 </label>
                 <div className="relative">
@@ -627,7 +451,7 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({
                     step={50}
                     value={securityDeposit}
                     onChange={(e) => handleDepositChange(Number(e.target.value))}
-                    className="w-full h-[38px] pl-7 pr-3 border border-emerald-300 rounded-xl bg-white text-[#0a332c] font-bold text-[15px] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-[#0a332c]"
+                    className="w-full h-[46px] pl-7 pr-3 border border-emerald-300 rounded-xl bg-white text-[#0a332c] font-bold text-[15px] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-[#0a332c]"
                   />
                 </div>
               </div>
@@ -637,25 +461,25 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({
           {/* Dates: Check-in date automatically today, rent due date next month same date */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             <div>
-              <label className="block font-bold text-slate-700 text-[11px] mb-1">
+              <label className="block font-bold text-slate-700 text-[12px] mb-1">
                 Check-in Date
               </label>
               <input
                 type="date"
                 value={checkInDate}
                 onChange={(e) => handleCheckInDateChange(e.target.value)}
-                className="w-full h-[38px] px-3 border border-slate-300 rounded-xl bg-white text-slate-900 font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                className="w-full h-[46px] px-3 border border-slate-300 rounded-xl bg-white text-slate-900 font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
               />
             </div>
             <div>
-              <label className="block font-bold text-slate-700 text-[11px] mb-1">
+              <label className="block font-bold text-slate-700 text-[12px] mb-1">
                 Rent Due Date (Next Month)
               </label>
               <input
                 type="date"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
-                className="w-full h-[38px] px-3 border border-slate-300 rounded-xl bg-white text-slate-900 font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                className="w-full h-[46px] px-3 border border-slate-300 rounded-xl bg-white text-slate-900 font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
               />
             </div>
           </div>
@@ -663,20 +487,20 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({
           {/* Identity: Only Aadhaar and Passport */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             <div>
-              <label className="block font-bold text-slate-700 text-[11px] mb-1">
+              <label className="block font-bold text-slate-700 text-[12px] mb-1">
                 ID Proof Type
               </label>
               <select
                 value={idProofType}
                 onChange={(e) => setIdProofType(e.target.value)}
-                className="w-full h-[38px] px-3 border border-slate-300 rounded-xl bg-white text-slate-900 font-semibold focus:outline-none"
+                className="w-full h-[46px] px-3 border border-slate-300 rounded-xl bg-white text-slate-900 font-semibold focus:outline-none"
               >
                 <option value="Aadhaar">Aadhaar</option>
                 <option value="Passport">Passport</option>
               </select>
             </div>
             <div>
-              <label className="block font-bold text-slate-700 text-[11px] mb-1">
+              <label className="block font-bold text-slate-700 text-[12px] mb-1">
                 ID Proof Number
               </label>
               <input
@@ -684,7 +508,7 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({
                 value={idProofNumber}
                 onChange={(e) => setIdProofNumber(e.target.value)}
                 placeholder="e.g. Aadhaar or Passport #"
-                className="w-full h-[38px] px-3 border border-slate-300 rounded-xl bg-white text-slate-900 font-semibold focus:outline-none"
+                className="w-full h-[46px] px-3 border border-slate-300 rounded-xl bg-white text-slate-900 font-semibold focus:outline-none"
               />
             </div>
           </div>
@@ -692,11 +516,11 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({
           {/* Document Capture & Google Drive Integration */}
           <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 flex flex-col gap-2.5">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1">
+              <span className="text-[12px] font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1">
                 <span className="material-symbols-outlined text-[15px] text-[#0a332c]">verified</span>
                 Document Collection & Drive Organizer
               </span>
-              <span className="text-[10px] text-slate-500 font-semibold">
+              <span className="text-[11px] text-slate-500 font-semibold">
                 Auto-compressed • Organized folder
               </span>
             </div>
@@ -710,7 +534,7 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({
                   onChange={(e) => setDocumentsCollected(e.target.checked)}
                   className="w-4 h-4 text-[#0a332c] rounded focus:ring-emerald-500"
                 />
-                <span className="font-bold text-slate-800 text-[11px]">
+                <span className="font-bold text-slate-800 text-[12px]">
                   ID Document Collected
                 </span>
               </label>
@@ -722,7 +546,7 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({
                   onChange={(e) => setAgreementCollected(e.target.checked)}
                   className="w-4 h-4 text-[#0a332c] rounded focus:ring-emerald-500"
                 />
-                <span className="font-bold text-slate-800 text-[11px]">
+                <span className="font-bold text-slate-800 text-[12px]">
                   T&C Agreement Collected
                 </span>
               </label>
@@ -731,21 +555,21 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({
             {/* Document Capture Buttons */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
               {/* ID Proof Scanner Trigger */}
-              <div className="bg-white p-2.5 rounded-lg border border-slate-200 flex flex-col gap-1.5">
+              <div className="bg-white p-2.5 rounded-lg border border-slate-200 flex flex-col gap-2">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-2">
                     <span className="material-symbols-outlined text-[16px] text-emerald-700">badge</span>
-                    <span className="text-[11px] font-bold text-slate-800">{idProofType} Document</span>
+                    <span className="text-[12px] font-bold text-slate-800">{idProofType} Document</span>
                   </div>
                   {documentPhotoUrl ? (
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded flex items-center gap-0.5 border border-emerald-200">
-                        <span className="material-symbols-outlined text-[12px]">check</span> {documentPhotoUrl.startsWith('data:image') ? 'Photo Attached' : 'Drive Linked'}
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded flex items-center gap-0.5 border border-emerald-200">
+                        <span className="material-symbols-outlined text-[13px]">check</span> {documentPhotoUrl.startsWith('data:image') ? 'Photo Attached' : 'Drive Linked'}
                       </span>
                       <button
                         type="button"
                         onClick={() => setDocumentPhotoUrl('')}
-                        className="text-[10px] text-rose-600 hover:text-rose-800 font-bold"
+                        className="text-[11px] text-rose-600 hover:text-rose-800 font-bold"
                         title="Remove attached document"
                       >
                         Remove
@@ -758,7 +582,7 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({
                         setEditingLinkFor(editingLinkFor === 'id' ? null : 'id');
                         setManualLinkInput(documentPhotoUrl);
                       }}
-                      className="text-[10px] text-blue-700 hover:underline font-bold"
+                      className="text-[11px] text-blue-700 hover:underline font-bold"
                     >
                       Paste Drive Link
                     </button>
@@ -767,19 +591,19 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({
 
                 {editingLinkFor === 'id' ? (
                   <div className="flex flex-col gap-1 mt-1 bg-blue-50/70 p-2 rounded border border-blue-200">
-                    <label className="text-[10px] font-bold text-blue-900">Paste Google Drive / Document URL:</label>
+                    <label className="text-[11px] font-bold text-blue-900">Paste Google Drive / Document URL:</label>
                     <input
                       type="url"
                       value={manualLinkInput}
                       onChange={(e) => setManualLinkInput(e.target.value)}
                       placeholder="https://drive.google.com/..."
-                      className="w-full text-[11px] px-2 py-1 bg-white border border-slate-300 rounded font-mono"
+                      className="w-full text-[12px] px-2 py-1 bg-white border border-slate-300 rounded font-mono"
                     />
-                    <div className="flex items-center justify-end gap-1.5 mt-0.5">
+                    <div className="flex items-center justify-end gap-2 mt-0.5">
                       <button
                         type="button"
                         onClick={() => setEditingLinkFor(null)}
-                        className="text-[10px] text-slate-500 hover:text-slate-700 font-semibold px-1.5 py-0.5"
+                        className="text-[11px] text-slate-500 hover:text-slate-700 font-semibold px-1.5 py-0.5"
                       >
                         Cancel
                       </button>
@@ -789,14 +613,14 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({
                           setDocumentPhotoUrl(manualLinkInput.trim());
                           setEditingLinkFor(null);
                         }}
-                        className="text-[10px] bg-blue-700 text-white font-bold px-2 py-0.5 rounded"
+                        className="text-[11px] bg-blue-700 text-white font-bold px-2 py-0.5 rounded"
                       >
                         Save Link
                       </button>
                     </div>
                   </div>
                 ) : documentPhotoUrl ? (
-                  <div className="flex items-center justify-between text-[11px] text-slate-600 gap-1">
+                  <div className="flex items-center justify-between text-[12px] text-slate-600 gap-1">
                     <a
                       href={documentPhotoUrl}
                       target="_blank"
@@ -805,14 +629,14 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({
                     >
                       View on Google Drive
                     </a>
-                    <div className="flex items-center gap-1.5 shrink-0">
+                    <div className="flex items-center gap-2 shrink-0">
                       <button
                         type="button"
                         onClick={() => {
                           setEditingLinkFor('id');
                           setManualLinkInput(documentPhotoUrl);
                         }}
-                        className="text-[10px] text-blue-700 hover:underline font-bold"
+                        className="text-[11px] text-blue-700 hover:underline font-bold"
                         title="Change Drive link"
                       >
                         Change Link
@@ -820,18 +644,18 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({
                       <button
                         type="button"
                         onClick={() => setActiveScanner('id')}
-                        className="text-slate-500 hover:text-slate-800 font-semibold text-[10px]"
+                        className="text-slate-500 hover:text-slate-800 font-semibold text-[11px]"
                       >
                         Re-scan
                       </button>
                     </div>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-2">
                     <button
                       type="button"
                       onClick={() => setActiveScanner('id')}
-                      className="flex-1 h-[32px] bg-slate-100 hover:bg-emerald-50 hover:text-[#0a332c] text-slate-700 font-bold rounded-md flex items-center justify-center gap-1 text-[11px] transition-colors"
+                      className="flex-1 h-[42px] bg-slate-100 hover:bg-emerald-50 hover:text-[#0a332c] text-slate-700 font-bold rounded-md flex items-center justify-center gap-1 text-[12px] transition-colors"
                     >
                       <span className="material-symbols-outlined text-[15px]">photo_camera</span>
                       <span>Scan / Upload {idProofType}</span>
@@ -841,21 +665,21 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({
               </div>
 
               {/* T&C Agreement Scanner Trigger */}
-              <div className="bg-white p-2.5 rounded-lg border border-slate-200 flex flex-col gap-1.5">
+              <div className="bg-white p-2.5 rounded-lg border border-slate-200 flex flex-col gap-2">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-2">
                     <span className="material-symbols-outlined text-[16px] text-indigo-700">description</span>
-                    <span className="text-[11px] font-bold text-slate-800">T&C Agreement</span>
+                    <span className="text-[12px] font-bold text-slate-800">T&C Agreement</span>
                   </div>
                   {termsDocumentUrl ? (
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded flex items-center gap-0.5 border border-emerald-200">
-                        <span className="material-symbols-outlined text-[12px]">check</span> {termsDocumentUrl.startsWith('data:image') ? 'Photo Attached' : 'Drive Linked'}
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded flex items-center gap-0.5 border border-emerald-200">
+                        <span className="material-symbols-outlined text-[13px]">check</span> {termsDocumentUrl.startsWith('data:image') ? 'Photo Attached' : 'Drive Linked'}
                       </span>
                       <button
                         type="button"
                         onClick={() => setTermsDocumentUrl('')}
-                        className="text-[10px] text-rose-600 hover:text-rose-800 font-bold"
+                        className="text-[11px] text-rose-600 hover:text-rose-800 font-bold"
                         title="Remove attached agreement"
                       >
                         Remove
@@ -868,7 +692,7 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({
                         setEditingLinkFor(editingLinkFor === 'terms' ? null : 'terms');
                         setManualLinkInput(termsDocumentUrl);
                       }}
-                      className="text-[10px] text-indigo-700 hover:underline font-bold"
+                      className="text-[11px] text-indigo-700 hover:underline font-bold"
                     >
                       Paste Drive Link
                     </button>
@@ -877,19 +701,19 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({
 
                 {editingLinkFor === 'terms' ? (
                   <div className="flex flex-col gap-1 mt-1 bg-indigo-50/70 p-2 rounded border border-indigo-200">
-                    <label className="text-[10px] font-bold text-indigo-900">Paste Google Drive / Document URL:</label>
+                    <label className="text-[11px] font-bold text-indigo-900">Paste Google Drive / Document URL:</label>
                     <input
                       type="url"
                       value={manualLinkInput}
                       onChange={(e) => setManualLinkInput(e.target.value)}
                       placeholder="https://drive.google.com/..."
-                      className="w-full text-[11px] px-2 py-1 bg-white border border-slate-300 rounded font-mono"
+                      className="w-full text-[12px] px-2 py-1 bg-white border border-slate-300 rounded font-mono"
                     />
-                    <div className="flex items-center justify-end gap-1.5 mt-0.5">
+                    <div className="flex items-center justify-end gap-2 mt-0.5">
                       <button
                         type="button"
                         onClick={() => setEditingLinkFor(null)}
-                        className="text-[10px] text-slate-500 hover:text-slate-700 font-semibold px-1.5 py-0.5"
+                        className="text-[11px] text-slate-500 hover:text-slate-700 font-semibold px-1.5 py-0.5"
                       >
                         Cancel
                       </button>
@@ -899,14 +723,14 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({
                           setTermsDocumentUrl(manualLinkInput.trim());
                           setEditingLinkFor(null);
                         }}
-                        className="text-[10px] bg-indigo-700 text-white font-bold px-2 py-0.5 rounded"
+                        className="text-[11px] bg-indigo-700 text-white font-bold px-2 py-0.5 rounded"
                       >
                         Save Link
                       </button>
                     </div>
                   </div>
                 ) : termsDocumentUrl ? (
-                  <div className="flex items-center justify-between text-[11px] text-slate-600 gap-1">
+                  <div className="flex items-center justify-between text-[12px] text-slate-600 gap-1">
                     <a
                       href={termsDocumentUrl}
                       target="_blank"
@@ -915,14 +739,14 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({
                     >
                       View on Google Drive
                     </a>
-                    <div className="flex items-center gap-1.5 shrink-0">
+                    <div className="flex items-center gap-2 shrink-0">
                       <button
                         type="button"
                         onClick={() => {
                           setEditingLinkFor('terms');
                           setManualLinkInput(termsDocumentUrl);
                         }}
-                        className="text-[10px] text-indigo-700 hover:underline font-bold"
+                        className="text-[11px] text-indigo-700 hover:underline font-bold"
                         title="Change Drive link"
                       >
                         Change Link
@@ -930,18 +754,18 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({
                       <button
                         type="button"
                         onClick={() => setActiveScanner('terms')}
-                        className="text-slate-500 hover:text-slate-800 font-semibold text-[10px]"
+                        className="text-slate-500 hover:text-slate-800 font-semibold text-[11px]"
                       >
                         Re-scan
                       </button>
                     </div>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-2">
                     <button
                       type="button"
                       onClick={() => setActiveScanner('terms')}
-                      className="flex-1 h-[32px] bg-slate-100 hover:bg-emerald-50 hover:text-[#0a332c] text-slate-700 font-bold rounded-md flex items-center justify-center gap-1 text-[11px] transition-colors"
+                      className="flex-1 h-[42px] bg-slate-100 hover:bg-emerald-50 hover:text-[#0a332c] text-slate-700 font-bold rounded-md flex items-center justify-center gap-1 text-[12px] transition-colors"
                     >
                       <span className="material-symbols-outlined text-[15px]">photo_camera</span>
                       <span>Scan / Upload T&C Document</span>
@@ -958,8 +782,6 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({
                   tenantName={name.trim() || 'New_Resident'}
                   roomNumber={Number(roomNumber)}
                   bedNumber={bedNumber}
-                  isBulkContract={isBulkContract}
-                  groupName={currentGroupName}
                   docType={activeScanner === 'id' ? `ID Proof (${idProofType})` : 'Terms & Conditions Agreement'}
                   compact={true}
                   onUploaded={(url) => {
@@ -980,7 +802,7 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({
 
           {/* Notes */}
           <div>
-            <label className="block font-bold text-slate-700 text-[11px] mb-1">
+            <label className="block font-bold text-slate-700 text-[12px] mb-1">
               Notes
             </label>
             <input
@@ -988,7 +810,7 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="e.g. Workplace or reference"
-              className="w-full h-[36px] px-3 border border-slate-300 rounded-xl bg-white text-slate-900 text-[12px] focus:outline-none"
+              className="w-full h-[46px] px-3 border border-slate-300 rounded-xl bg-white text-slate-900 text-[13px] focus:outline-none"
             />
           </div>
         </form>
@@ -998,15 +820,15 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 h-[40px] bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors text-[12px]"
+            className="flex-1 h-[48px] bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors text-[13px]"
           >
             Cancel
           </button>
           <button
             type="button"
             onClick={handleSubmit}
-            disabled={vacantRooms.length === 0}
-            className="flex-1 h-[40px] bg-[#0a332c] hover:bg-[#0f4239] disabled:opacity-50 text-white font-extrabold rounded-xl shadow-xs transition-colors flex items-center justify-center gap-1.5 text-[12px]"
+            disabled={roomOptions.length === 0}
+            className="flex-1 h-[48px] bg-[#0a332c] hover:bg-[#0f4239] disabled:opacity-50 text-white font-extrabold rounded-xl shadow-xs transition-colors flex items-center justify-center gap-2 text-[14px]"
           >
             <span className="material-symbols-outlined text-[17px]">how_to_reg</span>
             <span>Confirm Admission</span>

@@ -53,13 +53,13 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
         <div className="flex gap-2.5 p-4 pt-1 bg-slate-50/60 border-t border-slate-100">
           <button
             onClick={onCancel}
-            className="flex-1 h-[42px] bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 font-bold rounded-xl text-[13px] transition-colors"
+            className="flex-1 h-[48px] bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 font-bold rounded-xl text-[13px] transition-colors"
           >
             {cancelLabel}
           </button>
           <button
             onClick={onConfirm}
-            className={`flex-1 h-[42px] text-white font-extrabold rounded-xl text-[13px] shadow-sm transition-colors ${
+            className={`flex-1 h-[48px] text-white font-extrabold rounded-xl text-[13px] shadow-sm transition-colors ${
               danger
                 ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-200'
                 : 'bg-[#0a332c] hover:bg-[#0f4239]'

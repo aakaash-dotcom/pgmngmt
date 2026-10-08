@@ -23,9 +23,9 @@ export const AgamLogo: React.FC<AgamLogoProps> = ({
       case 'sm':
         return { height: 26, iconSize: 22, textClass: 'text-[18px]', subClass: 'text-[7px]' };
       case 'lg':
-        return { height: 42, iconSize: 36, textClass: 'text-[28px]', subClass: 'text-[10px]' };
+        return { height: 42, iconSize: 36, textClass: 'text-[28px]', subClass: 'text-[11px]' };
       case 'xl':
-        return { height: 56, iconSize: 48, textClass: 'text-[36px]', subClass: 'text-[12px]' };
+        return { height: 56, iconSize: 48, textClass: 'text-[36px]', subClass: 'text-[13px]' };
       case 'md':
       default:
         return { height: 32, iconSize: 28, textClass: 'text-[22px]', subClass: 'text-[8px]' };
@@ -74,7 +74,7 @@ export const AgamLogo: React.FC<AgamLogoProps> = ({
   // Full clean in-app wordmark - using standard clean typography and emblem to prevent collapse & overlapping
   return (
     <div className={`inline-flex flex-col items-start select-none ${className}`}>
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-2">
         {/* House Logo Emblem (Roof, Window, Letter 'g') */}
         <svg
           viewBox="0 0 100 100"

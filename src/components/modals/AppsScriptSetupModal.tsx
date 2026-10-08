@@ -78,7 +78,7 @@ export const AppsScriptSetupModal: React.FC<AppsScriptSetupModalProps> = ({
         {/* Header */}
         <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-emerald-100 text-[#0a332c] flex items-center justify-center font-bold">
+            <div className="w-11 h-11 rounded-xl bg-emerald-100 text-[#0a332c] flex items-center justify-center font-bold">
               <span className="material-symbols-outlined text-[20px]">add_to_drive</span>
             </div>
             <div>
@@ -93,7 +93,7 @@ export const AppsScriptSetupModal: React.FC<AppsScriptSetupModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-200/50 transition-colors"
+            className="w-11 h-11 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-200/50 transition-colors"
           >
             <span className="material-symbols-outlined text-[18px]">close</span>
           </button>
@@ -103,22 +103,22 @@ export const AppsScriptSetupModal: React.FC<AppsScriptSetupModalProps> = ({
         <div className="p-5 overflow-y-auto space-y-4 text-xs">
           {/* Quick Explanation */}
           <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-xl p-3 text-emerald-950 space-y-1">
-            <div className="flex items-center gap-1.5 font-bold text-xs text-emerald-900">
+            <div className="flex items-center gap-2 font-bold text-xs text-emerald-900">
               <span className="material-symbols-outlined text-[16px] text-emerald-700">verified</span>
               <span>100% Free & Unlimited Personal Google Drive Storage</span>
             </div>
-            <p className="leading-relaxed text-[11px] text-emerald-800">
+            <p className="leading-relaxed text-[12px] text-emerald-800">
               By deploying this simple Google Apps Script in your Google account, photos taken in the app upload directly to your personal Google Drive without any login popups, OAuth blocks, or quota limitations!
             </p>
           </div>
 
           {/* 4-Step Instructions */}
           <div className="space-y-2 bg-slate-50 border border-slate-200 rounded-xl p-3.5">
-            <h4 className="font-extrabold text-slate-800 text-[12px] flex items-center gap-1.5">
+            <h4 className="font-extrabold text-slate-800 text-[13px] flex items-center gap-2">
               <span className="material-symbols-outlined text-[16px] text-[#0a332c]">menu_book</span>
               <span>4 Simple Steps to Deploy (Takes 60 seconds)</span>
             </h4>
-            <ol className="space-y-2 text-[11px] text-slate-700 pl-4 list-decimal marker:font-bold marker:text-emerald-700">
+            <ol className="space-y-2 text-[12px] text-slate-700 pl-4 list-decimal marker:font-bold marker:text-emerald-700">
               <li>
                 Open <a href="https://script.google.com/home/start" target="_blank" rel="noreferrer" className="text-emerald-700 font-bold underline">script.google.com</a> and click <strong>New Project</strong>.
               </li>
@@ -142,13 +142,13 @@ export const AppsScriptSetupModal: React.FC<AppsScriptSetupModalProps> = ({
           {/* Code Viewer */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <span className="font-extrabold text-slate-800 text-[11px]">
+              <span className="font-extrabold text-slate-800 text-[12px]">
                 Google Apps Script Code:
               </span>
               <button
                 type="button"
                 onClick={handleCopyCode}
-                className="px-2.5 py-1 rounded-lg bg-emerald-600 text-white font-bold text-[11px] flex items-center gap-1 hover:bg-emerald-700 transition-colors shadow-xs"
+                className="h-[38px] px-3 rounded-lg bg-emerald-600 text-white font-bold text-[12px] flex items-center gap-1 hover:bg-emerald-700 transition-colors shadow-xs"
               >
                 <span className="material-symbols-outlined text-[14px]">
                   {copied ? 'check' : 'content_copy'}
@@ -156,7 +156,7 @@ export const AppsScriptSetupModal: React.FC<AppsScriptSetupModalProps> = ({
                 <span>{copied ? 'Copied to Clipboard!' : 'Copy Code'}</span>
               </button>
             </div>
-            <pre className="bg-slate-900 text-slate-200 p-3 rounded-xl font-mono text-[10px] leading-relaxed max-h-36 overflow-y-auto border border-slate-800">
+            <pre className="bg-slate-900 text-slate-200 p-3 rounded-xl font-mono text-[11px] leading-relaxed max-h-36 overflow-y-auto border border-slate-800">
               {GOOGLE_APPS_SCRIPT_TEMPLATE}
             </pre>
           </div>
@@ -164,7 +164,7 @@ export const AppsScriptSetupModal: React.FC<AppsScriptSetupModalProps> = ({
           {/* Configuration Inputs */}
           <div className="space-y-3 pt-1 border-t border-slate-200">
             <div>
-              <label className="block text-[11px] font-bold text-slate-800 mb-1">
+              <label className="block text-[12px] font-bold text-slate-800 mb-1">
                 Your Deployed Apps Script Web App URL <span className="text-red-500">*</span>
               </label>
               <input
@@ -174,13 +174,13 @@ export const AppsScriptSetupModal: React.FC<AppsScriptSetupModalProps> = ({
                 placeholder="https://script.google.com/macros/s/AKfycb.../exec"
                 className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 font-mono text-slate-800"
               />
-              <p className="text-[10px] text-slate-500 mt-1">
+              <p className="text-[11px] text-slate-500 mt-1">
                 Paste the URL ending in <code>/exec</code> after clicking Deploy as Web App.
               </p>
             </div>
 
             <div>
-              <label className="block text-[11px] font-bold text-slate-800 mb-1">
+              <label className="block text-[12px] font-bold text-slate-800 mb-1">
                 Specific Google Drive Folder ID <span className="text-slate-400 font-normal">(Optional)</span>
               </label>
               <input
@@ -190,13 +190,13 @@ export const AppsScriptSetupModal: React.FC<AppsScriptSetupModalProps> = ({
                 placeholder="Leave blank to auto-create 'Agam PG Resident Documents' folder"
                 className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 font-mono text-slate-800"
               />
-              <p className="text-[10px] text-slate-500 mt-1">
+              <p className="text-[11px] text-slate-500 mt-1">
                 If left empty, a folder named <strong>"Agam PG Resident Documents"</strong> is created automatically in your Google Drive.
               </p>
             </div>
 
             {testStatus && (
-              <div className={`p-2.5 rounded-xl text-[11px] font-medium ${
+              <div className={`p-2.5 rounded-xl text-[12px] font-medium ${
                 testStatus.includes('successfully') ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-amber-50 text-amber-900 border border-amber-200'
               }`}>
                 {testStatus}
@@ -211,7 +211,7 @@ export const AppsScriptSetupModal: React.FC<AppsScriptSetupModalProps> = ({
             type="button"
             onClick={handleTestConnection}
             disabled={isTesting || !scriptUrl.trim()}
-            className="px-3 py-1.5 rounded-xl border border-slate-300 text-slate-700 font-bold text-xs hover:bg-slate-100 disabled:opacity-50 transition-colors flex items-center gap-1.5"
+            className="px-3 py-1.5 rounded-xl border border-slate-300 text-slate-700 font-bold text-xs hover:bg-slate-100 disabled:opacity-50 transition-colors flex items-center gap-2"
           >
             <span className="material-symbols-outlined text-[15px]">
               {isTesting ? 'sync' : 'network_check'}

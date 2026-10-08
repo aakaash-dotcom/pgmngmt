@@ -136,7 +136,7 @@ export const tenantFromDbRow = (t: any): any => ({
 
 const paymentStatusToDb = (s: any): string => {
   const v = String(s || '').toLowerCase();
-  if (v === 'paid' || v === 'company billed') return 'paid';
+  if (v === 'paid') return 'paid';
   if (v === 'partial') return 'partial';
   return 'unpaid';
 };

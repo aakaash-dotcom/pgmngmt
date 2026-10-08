@@ -50,7 +50,7 @@ export const RoomDetailModal: React.FC<RoomDetailModalProps> = ({
                 <h3 className="text-[20px] font-extrabold text-slate-900 leading-tight">
                   {room.name || `Room ${room.number}`}
                 </h3>
-                <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-slate-200 text-slate-700">
+                <span className="text-[12px] font-bold px-2.5 py-0.5 rounded-full bg-slate-200 text-slate-700">
                   Floor {room.floor} • {room.type}
                 </span>
               </div>
@@ -60,14 +60,14 @@ export const RoomDetailModal: React.FC<RoomDetailModalProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2">
             <button
               onClick={() => {
                 onClose();
                 onEditRoom(room);
               }}
               title="Edit Room Price & Capacity"
-              className="px-3 py-1.5 bg-white border border-slate-200 hover:border-blue-400 text-slate-700 hover:text-blue-700 rounded-xl text-[12px] font-bold shadow-2xs flex items-center gap-1 transition-all"
+              className="h-[40px] px-4 bg-white border border-slate-200 hover:border-blue-400 text-slate-700 hover:text-blue-700 rounded-xl text-[13px] font-bold shadow-2xs flex items-center gap-1 transition-all"
             >
               <span className="material-symbols-outlined text-[16px] text-blue-600">tune</span>
               <span>Edit Room</span>
@@ -86,13 +86,13 @@ export const RoomDetailModal: React.FC<RoomDetailModalProps> = ({
           {/* Occupancy Card */}
           <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-4 flex justify-between items-center">
             <div>
-              <span className="text-[11px] text-slate-500 uppercase font-bold tracking-wider block">
+              <span className="text-[12px] text-slate-500 uppercase font-bold tracking-wider block">
                 Occupancy & Bed Status
               </span>
               <div className="text-[18px] font-extrabold text-slate-900 mt-0.5 flex items-baseline gap-2">
                 <span>{isMaintenance ? 'Under Maintenance' : `${room.occupied} / ${room.capacity} Beds Filled`}</span>
                 {!isMaintenance && (
-                  <span className="text-[12px] font-semibold text-slate-500">
+                  <span className="text-[13px] font-semibold text-slate-500">
                     ({vacantBeds} {vacantBeds === 1 ? 'bed vacant' : 'beds vacant'})
                   </span>
                 )}
@@ -100,7 +100,7 @@ export const RoomDetailModal: React.FC<RoomDetailModalProps> = ({
             </div>
 
             <span
-              className={`text-[12px] font-bold px-3 py-1 rounded-full ${
+              className={`text-[13px] font-bold px-3 py-1 rounded-full ${
                 room.status === 'full'
                   ? 'bg-blue-100 text-blue-800'
                   : room.status === 'partial'
@@ -123,7 +123,7 @@ export const RoomDetailModal: React.FC<RoomDetailModalProps> = ({
           {/* Occupants List */}
           <div className="border border-slate-200 rounded-xl p-4 flex flex-col gap-2.5">
             <div className="flex justify-between items-center pb-1 border-b border-slate-100">
-              <span className="text-[12px] font-bold uppercase tracking-wider text-slate-700">
+              <span className="text-[13px] font-bold uppercase tracking-wider text-slate-700">
                 Current Tenants ({roomTenants.length > 0 ? roomTenants.length : room.occupants.length})
               </span>
               {!isMaintenance && (roomTenants.length > 0 ? roomTenants.length : room.occupied) < room.capacity && (
@@ -132,7 +132,7 @@ export const RoomDetailModal: React.FC<RoomDetailModalProps> = ({
                     onClose();
                     onAddTenantToRoom(room.number);
                   }}
-                  className="text-[12px] text-blue-600 font-bold hover:underline flex items-center gap-1"
+                  className="text-[13px] text-blue-600 font-bold hover:underline flex items-center gap-1"
                 >
                   <span className="material-symbols-outlined text-[16px]">person_add</span>
                   <span>Admit Tenant</span>
@@ -152,14 +152,14 @@ export const RoomDetailModal: React.FC<RoomDetailModalProps> = ({
                     className="p-3 rounded-xl bg-slate-50 hover:bg-blue-50/60 border border-slate-200 hover:border-blue-200 flex items-center justify-between cursor-pointer transition-all group"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-800 text-[13px] font-extrabold flex items-center justify-center">
+                      <div className="w-11 h-11 rounded-lg bg-blue-100 text-blue-800 text-[13px] font-extrabold flex items-center justify-center">
                         {tenant.bedNumber || `B${idx + 1}`}
                       </div>
                       <div>
                         <div className="font-bold text-slate-900 text-[14px] group-hover:text-blue-700 transition-colors">
                           {tenant.name}
                         </div>
-                        <div className="text-[12px] text-slate-500 font-medium flex items-center gap-2">
+                        <div className="text-[13px] text-slate-500 font-medium flex items-center gap-2">
                           <span>{tenant.phone}</span>
                           <span>•</span>
                           <span>₹{tenant.rentAmount?.toLocaleString('en-IN')}/mo</span>
@@ -169,7 +169,7 @@ export const RoomDetailModal: React.FC<RoomDetailModalProps> = ({
 
                     <div className="flex items-center gap-2">
                       <span
-                        className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${
+                        className={`text-[12px] font-bold px-2.5 py-0.5 rounded-full ${
                           tenant.status === 'Paid'
                             ? 'bg-emerald-100 text-emerald-800'
                             : tenant.status === 'Overdue'
@@ -204,7 +204,7 @@ export const RoomDetailModal: React.FC<RoomDetailModalProps> = ({
                       className="p-3 rounded-xl bg-slate-50 hover:bg-blue-50/60 border border-slate-200 hover:border-blue-200 flex items-center justify-between cursor-pointer transition-all group"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-800 text-[13px] font-extrabold flex items-center justify-center">
+                        <div className="w-11 h-11 rounded-lg bg-blue-100 text-blue-800 text-[13px] font-extrabold flex items-center justify-center">
                           {idx + 1}
                         </div>
                         <div>
@@ -212,7 +212,7 @@ export const RoomDetailModal: React.FC<RoomDetailModalProps> = ({
                             {occName} {tenantMatch ? `(${tenantMatch.name})` : ''}
                           </div>
                           {tenantMatch && (
-                            <div className="text-[12px] text-slate-500 font-medium flex items-center gap-2">
+                            <div className="text-[13px] text-slate-500 font-medium flex items-center gap-2">
                               <span>Bed {tenantMatch.bedNumber || `B${idx + 1}`}</span>
                               <span>•</span>
                               <span>{tenantMatch.phone}</span>
@@ -224,7 +224,7 @@ export const RoomDetailModal: React.FC<RoomDetailModalProps> = ({
                       <div className="flex items-center gap-2">
                         {tenantMatch && (
                           <span
-                            className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${
+                            className={`text-[12px] font-bold px-2.5 py-0.5 rounded-full ${
                               tenantMatch.status === 'Paid'
                                 ? 'bg-emerald-100 text-emerald-800'
                                 : tenantMatch.status === 'Overdue'
@@ -255,14 +255,14 @@ export const RoomDetailModal: React.FC<RoomDetailModalProps> = ({
           {/* Amenities */}
           {room.amenities && room.amenities.length > 0 && (
             <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-4">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-2">
+              <span className="text-[12px] font-bold uppercase tracking-wider text-slate-500 block mb-2">
                 Room Amenities & Facilities
               </span>
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-wrap gap-2">
                 {room.amenities.map((amenity, i) => (
                   <span
                     key={i}
-                    className="text-[12px] bg-white border border-slate-200 text-slate-700 px-3 py-1 rounded-lg font-semibold shadow-2xs"
+                    className="text-[13px] bg-white border border-slate-200 text-slate-700 px-3 py-1 rounded-lg font-semibold shadow-2xs"
                   >
                     {amenity}
                   </span>
@@ -288,7 +288,7 @@ export const RoomDetailModal: React.FC<RoomDetailModalProps> = ({
                     setIsEditingMaintenance(true);
                   }
                 }}
-                className={`text-[12px] font-bold px-3 py-1 rounded-lg transition-colors ${
+                className={`text-[13px] font-bold px-3 py-1 rounded-lg transition-colors ${
                   isMaintenance
                     ? 'bg-emerald-600 text-white hover:bg-emerald-700'
                     : 'bg-amber-100 text-amber-900 hover:bg-amber-200'
@@ -312,7 +312,7 @@ export const RoomDetailModal: React.FC<RoomDetailModalProps> = ({
                     onToggleMaintenance(room.id, true, maintenanceReason);
                     setIsEditingMaintenance(false);
                   }}
-                  className="py-2 bg-amber-600 text-white rounded-xl text-[12px] font-bold hover:bg-amber-700 transition-colors"
+                  className="py-2 bg-amber-600 text-white rounded-xl text-[13px] font-bold hover:bg-amber-700 transition-colors"
                 >
                   Confirm Maintenance Mode
                 </button>

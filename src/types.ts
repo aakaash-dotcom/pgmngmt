@@ -1,7 +1,6 @@
-export type PaymentStatus = 'Paid' | 'Unpaid' | 'Partial' | 'Overdue' | 'Company Billed';
+export type PaymentStatus = 'Paid' | 'Unpaid' | 'Partial' | 'Overdue';
 export type RoomStatus = 'full' | 'partial' | 'empty' | 'maintenance';
 export type TabType = 'home' | 'rooms' | 'people' | 'money' | 'more';
-export type BillingModel = 'individual_monthly' | 'company_end_of_month';
 
 export type ExpenseCategory =
   | 'Electricity'
@@ -17,25 +16,11 @@ export type ExpenseCategory =
 
 export type IncomeCategory =
   | 'Monthly Rent'
-  | 'Bulk Company Rent'
   | 'Security Deposit'
   | 'Admission / Registration'
   | 'Late Fine / Penalty'
   | 'Extra Amenity / Key'
   | 'Other Income';
-
-export interface BulkGroup {
-  id: string;
-  name: string;
-  companyName: string;
-  contactPerson: string;
-  contactPhone: string;
-  rentPerPerson: number;
-  advancePerPerson: number;
-  billingModel: BillingModel;
-  notes?: string;
-  createdDate: string;
-}
 
 export interface Tenant {
   id: string;
@@ -60,13 +45,6 @@ export interface Tenant {
   notes?: string;
   avatarBg?: string;
 
-  // Bulk / Corporate Contract fields
-  isBulkContract?: boolean;
-  groupName?: string; // e.g. "Nepal Hotel Group", "Taj Hotel Batch"
-  companyName?: string; // e.g. "Grand Palace Banquets & Hotel"
-  companyContactPhone?: string;
-  billingModel?: BillingModel; // 'company_end_of_month' or 'individual_monthly'
-  
   // Document Collection checklist
   documentsCollected?: boolean; // Overall documents collected
   idDocumentCollected?: boolean; // Aadhaar / Passport collected
@@ -105,9 +83,6 @@ export interface RentPayment {
   balance: number;
   paymentMode?: 'UPI' | 'Cash' | 'Bank Transfer' | 'Cheque';
   note?: string;
-  isBulkPayment?: boolean;
-  companyName?: string;
-  groupName?: string;
 }
 
 export interface Income {
@@ -120,8 +95,6 @@ export interface Income {
   paymentMode: 'UPI' | 'Cash' | 'Bank Transfer' | 'Cheque';
   monthYear: string;
   notes?: string;
-  isBulkIncome?: boolean;
-  groupName?: string;
 }
 
 export interface Expense {
@@ -185,6 +158,6 @@ export interface WhatsAppTemplate {
   title: string;
   topic: string;
   template: string;
-  category: 'individual' | 'group' | 'general';
+  category: 'individual' | 'general';
   isDefault?: boolean;
 }

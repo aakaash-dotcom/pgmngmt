@@ -30,12 +30,12 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
       id="top-app-bar"
       className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs"
     >
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 h-[54px] flex items-center justify-between gap-3">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 h-[62px] flex items-center justify-between gap-3">
         {/* Left Side: Drawer Toggle & Brand Logo */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <button
             onClick={onOpenSideDrawer}
-            className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 transition-colors"
+            className="w-11 h-11 flex items-center justify-center rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 transition-colors"
             title="Open Menu"
           >
             <span className="material-symbols-outlined text-[20px]">menu</span>
@@ -59,7 +59,7 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
                 ? 'You are offline — changes will sync when you reconnect'
                 : 'Live synced across devices'
             } (${lastSyncTime})`}
-            className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-bold border transition-colors ${
+            className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[11px] font-bold border transition-colors ${
               cloudSyncStatus === 'syncing'
                 ? 'bg-amber-50 text-amber-800 border-amber-200 animate-pulse'
                 : cloudSyncStatus === 'error'
@@ -93,7 +93,7 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
 
           <div
             id="current-page-badge"
-            className="h-[34px] px-3 bg-slate-50 border border-slate-200 text-slate-800 rounded-xl text-[12px] font-black flex items-center gap-1.5 shadow-2xs select-none"
+            className="h-[44px] px-3 bg-slate-50 border border-slate-200 text-slate-800 rounded-xl text-[13px] font-black flex items-center gap-2 shadow-2xs select-none"
           >
             <span className="material-symbols-outlined text-[16px] text-emerald-700">
               {current.icon}

@@ -9,7 +9,6 @@ import {
   MaintenanceTicket,
   Notice,
   StaffContact,
-  BulkGroup,
   WhatsAppTemplate,
 } from './types';
 import {
@@ -52,7 +51,6 @@ import { AddIncomeModal } from './components/modals/AddIncomeModal';
 import { AddRoomModal } from './components/modals/AddRoomModal';
 import { EditRoomModal } from './components/modals/EditRoomModal';
 import { ActionRequiredModal } from './components/modals/ActionRequiredModal';
-import { BulkGroupManagerModal } from './components/modals/BulkGroupManagerModal';
 import { WhatsAppTemplateModal } from './components/modals/WhatsAppTemplateModal';
 
 // Legacy demo/mock record IDs that must never revive from old cloud backups
@@ -62,8 +60,7 @@ const LEGACY_MOCK_IDS = new Set([
   't-1', 't-2', 't-3',
   'exp-1', 'exp-2', 'exp-3',
   'inc-1', 'inc-2',
-  'mt-1', 'mt-2',
-  'bg-1', 'bg-2'
+  'mt-1', 'mt-2'
 ]);
 
 // Helper to strip any legacy mock/demo records so they never revive
@@ -94,15 +91,6 @@ export default function App() {
   const [tenants, setTenants] = useState<Tenant[]>(() => {
     try {
       const saved = localStorage.getItem('agam_pg_tenants');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
-
-  const [bulkGroups, setBulkGroups] = useState<BulkGroup[]>(() => {
-    try {
-      const saved = localStorage.getItem('agam_pg_bulk_groups');
       return saved ? JSON.parse(saved) : [];
     } catch {
       return [];
@@ -182,10 +170,6 @@ export default function App() {
   }, [tenants]);
 
   useEffect(() => {
-    localStorage.setItem('agam_pg_bulk_groups', JSON.stringify(bulkGroups));
-  }, [bulkGroups]);
-
-  useEffect(() => {
     localStorage.setItem('agam_pg_wa_templates', JSON.stringify(whatsAppTemplates));
   }, [whatsAppTemplates]);
 
@@ -252,7 +236,6 @@ export default function App() {
         localStorage.setItem('agam_pg_expenses', '[]');
         localStorage.setItem('agam_pg_incomes', '[]');
         localStorage.setItem('agam_pg_tickets', '[]');
-        localStorage.setItem('agam_pg_bulk_groups', '[]');
         localStorage.setItem('agam_pg_notices', '[]');
         localStorage.setItem('agam_pg_last_updated', new Date().toISOString());
 
@@ -263,7 +246,6 @@ export default function App() {
         setExpenses([]);
         setIncomes([]);
         setMaintenanceTickets([]);
-        setBulkGroups([]);
         setNotices([]);
 
         // Purge Firestore cloud database document so old demo staff/rooms are wiped for good
@@ -275,7 +257,6 @@ export default function App() {
           expenses: [],
           maintenanceTickets: [],
           staffContacts: [],
-          bulkGroups: [],
           notices: [],
           whatsappTemplates: INITIAL_WA_TEMPLATES,
         });
@@ -298,8 +279,6 @@ export default function App() {
       const localTickets: MaintenanceTicket[] = filterLegacy(localTicketsStr ? JSON.parse(localTicketsStr) : []);
       const localStaffStr = localStorage.getItem('agam_pg_staff');
       const localStaff: StaffContact[] = filterLegacy(localStaffStr ? JSON.parse(localStaffStr) : []);
-      const localGroupsStr = localStorage.getItem('agam_pg_bulk_groups');
-      const localGroups: BulkGroup[] = filterLegacy(localGroupsStr ? JSON.parse(localGroupsStr) : []);
       const localNoticesStr = localStorage.getItem('agam_pg_notices');
       const localNotices: Notice[] = filterLegacy(localNoticesStr ? JSON.parse(localNoticesStr) : []);
       const localWaStr = localStorage.getItem('agam_pg_wa_templates');
@@ -316,7 +295,6 @@ export default function App() {
           expenses: localExpenses,
           maintenanceTickets: localTickets,
           staffContacts: localStaff,
-          bulkGroups: localGroups,
           notices: localNotices,
           whatsappTemplates: localWa,
         });
@@ -331,7 +309,6 @@ export default function App() {
       const reconciledExpenses = mergeUniqueById(localExpenses, filterLegacy(cloudData.expenses || []), 'id');
       const reconciledTickets = mergeUniqueById(localTickets, filterLegacy(cloudData.maintenanceTickets || []), 'id');
       const reconciledStaff = mergeUniqueById(localStaff, filterLegacy(cloudData.staffContacts || []), 'id');
-      const reconciledGroups = mergeUniqueById(localGroups, filterLegacy(cloudData.bulkGroups || []), 'id');
       const reconciledNotices = mergeUniqueById(localNotices, filterLegacy(cloudData.notices || []), 'id');
       const reconciledWa = cloudData.whatsappTemplates?.length ? cloudData.whatsappTemplates : localWa;
 
@@ -343,7 +320,6 @@ export default function App() {
       setExpenses(reconciledExpenses);
       setMaintenanceTickets(reconciledTickets);
       setStaffContacts(reconciledStaff);
-      setBulkGroups(reconciledGroups);
       setNotices(reconciledNotices);
       setWhatsAppTemplates(reconciledWa);
 
@@ -356,7 +332,6 @@ export default function App() {
         localStorage.setItem('agam_pg_expenses', JSON.stringify(reconciledExpenses));
         localStorage.setItem('agam_pg_tickets', JSON.stringify(reconciledTickets));
         localStorage.setItem('agam_pg_staff', JSON.stringify(reconciledStaff));
-        localStorage.setItem('agam_pg_bulk_groups', JSON.stringify(reconciledGroups));
         localStorage.setItem('agam_pg_notices', JSON.stringify(reconciledNotices));
         localStorage.setItem('agam_pg_wa_templates', JSON.stringify(reconciledWa));
         localStorage.setItem('agam_pg_last_updated', new Date().toISOString());
@@ -371,7 +346,6 @@ export default function App() {
         expenses: reconciledExpenses,
         maintenanceTickets: reconciledTickets,
         staffContacts: reconciledStaff,
-        bulkGroups: reconciledGroups,
         notices: reconciledNotices,
         whatsappTemplates: reconciledWa,
       });
@@ -420,7 +394,6 @@ export default function App() {
       const nextExpenses = filterLegacy(remoteData.expenses || []);
       const nextTickets = filterLegacy(remoteData.maintenanceTickets || []);
       const nextStaff = filterLegacy(remoteData.staffContacts || []);
-      const nextGroups = filterLegacy(remoteData.bulkGroups || []);
       const nextNotices = filterLegacy(remoteData.notices || []);
 
       setRooms(nextRooms);
@@ -430,7 +403,6 @@ export default function App() {
       setExpenses(nextExpenses);
       setMaintenanceTickets(nextTickets);
       setStaffContacts(nextStaff);
-      setBulkGroups(nextGroups);
       setNotices(nextNotices);
       setWhatsAppTemplates((prev) =>
         remoteData.whatsappTemplates?.length ? remoteData.whatsappTemplates : prev
@@ -444,7 +416,6 @@ export default function App() {
         localStorage.setItem('agam_pg_expenses', JSON.stringify(nextExpenses));
         localStorage.setItem('agam_pg_tickets', JSON.stringify(nextTickets));
         localStorage.setItem('agam_pg_staff', JSON.stringify(nextStaff));
-        localStorage.setItem('agam_pg_bulk_groups', JSON.stringify(nextGroups));
         localStorage.setItem('agam_pg_notices', JSON.stringify(nextNotices));
         localStorage.setItem('agam_pg_last_updated', new Date().toISOString());
       } catch (e) {}
@@ -475,7 +446,6 @@ export default function App() {
       expenses,
       maintenanceTickets,
       staffContacts,
-      bulkGroups,
       notices,
       whatsappTemplates: whatsAppTemplates,
     };
@@ -492,7 +462,6 @@ export default function App() {
     expenses,
     maintenanceTickets,
     staffContacts,
-    bulkGroups,
     notices,
     whatsAppTemplates,
   ]);
@@ -507,7 +476,6 @@ export default function App() {
       expenses,
       maintenanceTickets,
       staffContacts,
-      bulkGroups,
       notices,
       whatsappTemplates: whatsAppTemplates,
     };
@@ -515,6 +483,17 @@ export default function App() {
 
   // Modal States
   const [isAddTenantOpen, setIsAddTenantOpen] = useState(false);
+  const [addTenantDefaultRoom, setAddTenantDefaultRoom] = useState<number | undefined>(undefined);
+
+  const openAddTenantModal = (roomNumber?: number) => {
+    setAddTenantDefaultRoom(roomNumber);
+    setIsAddTenantOpen(true);
+  };
+
+  const closeAddTenantModal = () => {
+    setIsAddTenantOpen(false);
+    setAddTenantDefaultRoom(undefined);
+  };
   const [isCollectRentOpen, setIsCollectRentOpen] = useState(false);
   const [isRoomDetailOpen, setIsRoomDetailOpen] = useState(false);
   const [isTenantDetailOpen, setIsTenantDetailOpen] = useState(false);
@@ -523,7 +502,6 @@ export default function App() {
   const [isAddRoomOpen, setIsAddRoomOpen] = useState(false);
   const [isEditRoomOpen, setIsEditRoomOpen] = useState(false);
   const [isActionRequiredOpen, setIsActionRequiredOpen] = useState(false);
-  const [isBulkManagerOpen, setIsBulkManagerOpen] = useState(false);
   const [isWhatsAppTemplatesOpen, setIsWhatsAppTemplatesOpen] = useState(false);
 
   // Selected Entities for Modals
@@ -602,7 +580,6 @@ export default function App() {
               expenses: mergeUniqueById(snapshot.expenses, filterLegacy(cloudData.expenses || []), 'id'),
               maintenanceTickets: mergeUniqueById(snapshot.maintenanceTickets, filterLegacy(cloudData.maintenanceTickets || []), 'id'),
               staffContacts: mergeUniqueById(snapshot.staffContacts, filterLegacy(cloudData.staffContacts || []), 'id'),
-              bulkGroups: mergeUniqueById(snapshot.bulkGroups, filterLegacy(cloudData.bulkGroups || []), 'id'),
               notices: mergeUniqueById(snapshot.notices, filterLegacy(cloudData.notices || []), 'id'),
               whatsappTemplates: cloudData.whatsappTemplates?.length
                 ? cloudData.whatsappTemplates
@@ -619,7 +596,6 @@ export default function App() {
             setExpenses(merged.expenses);
             setMaintenanceTickets(merged.maintenanceTickets);
             setStaffContacts(merged.staffContacts);
-            setBulkGroups(merged.bulkGroups);
             setNotices(merged.notices);
             setWhatsAppTemplates(merged.whatsappTemplates);
             return;
@@ -674,7 +650,6 @@ export default function App() {
       expenses,
       maintenanceTickets,
       staffContacts,
-      bulkGroups,
       notices,
       whatsappTemplates: updated,
     });
@@ -696,197 +671,10 @@ export default function App() {
       expenses,
       maintenanceTickets,
       staffContacts,
-      bulkGroups,
       notices,
       whatsappTemplates: updated,
     });
     showToast('WhatsApp template removed.');
-  };
-
-  // Bulk Groups Management
-  const handleAddBulkGroup = (group: BulkGroup) => {
-    const updated = [group, ...bulkGroups];
-    setBulkGroups(updated);
-    try {
-      localStorage.setItem('agam_pg_bulk_groups', JSON.stringify(updated));
-      localStorage.setItem('agam_pg_last_updated', new Date().toISOString());
-    } catch (e) {}
-    saveStateToCloudImmediately({
-      rooms,
-      tenants,
-      payments: rentPayments,
-      incomes,
-      expenses,
-      maintenanceTickets,
-      staffContacts,
-      bulkGroups: updated,
-      notices,
-      whatsappTemplates: whatsAppTemplates,
-    });
-    showToast(`Added corporate/bulk contract group: ${group.name}!`);
-  };
-
-  // Bulk Check-in of Multiple Residents
-  const handleBulkCheckIn = (tenantsData: Omit<Tenant, 'id' | 'balance' | 'status' | 'isActive'>[]) => {
-    const timestamp = Date.now();
-    const newTenants: Tenant[] = tenantsData.map((td, idx) => ({
-      ...td,
-      id: `t-bulk-${timestamp}-${idx}`,
-      balance: td.isBulkContract ? 0 : td.rentAmount,
-      status: td.isBulkContract ? 'Paid' : 'Unpaid',
-      isActive: true,
-    }));
-
-    const updatedTenants = [...newTenants, ...tenants];
-
-    // Update Room Occupancy
-    const updatedRooms = [...rooms];
-    newTenants.forEach((nt) => {
-      const roomIndex = updatedRooms.findIndex((r) => Number(r.number) === Number(nt.roomNumber));
-      if (roomIndex !== -1) {
-        const r = updatedRooms[roomIndex];
-        const updatedOccupants = [...r.occupants, nt.name.split(' ')[0]];
-        const newOccupied = updatedOccupants.length;
-        const status = newOccupied >= r.capacity ? 'full' : newOccupied > 0 ? 'partial' : 'empty';
-        updatedRooms[roomIndex] = {
-          ...r,
-          occupied: newOccupied,
-          occupants: updatedOccupants,
-          status: r.status === 'maintenance' ? 'maintenance' : status,
-        };
-      }
-    });
-
-    // Record Security Deposits Incomes
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonthShort = now.toLocaleDateString('en-IN', { month: 'short' });
-    const currentMonthYearStr = getCurrentMonthYear(now);
-    const todayStr = getTodayDateString();
-
-    const depositIncomes: Income[] = newTenants
-      .filter((t) => t.securityDeposit && t.securityDeposit > 0)
-      .map((t, idx) => ({
-        id: `inc-dep-${timestamp}-${idx}`,
-        title: `Advance Deposit - Room ${t.roomNumber} (${t.name})`,
-        category: 'Security Deposit',
-        amount: t.securityDeposit || 0,
-        date: t.checkInDate || todayStr,
-        receivedFrom: t.name,
-        paymentMode: 'Cash',
-        monthYear: formatMonthYearFromDateString(t.checkInDate || todayStr),
-        notes: `Bulk contract check-in: ${t.groupName || ''}`,
-      }));
-
-    const updatedIncomes = [...depositIncomes, ...incomes];
-
-    // Create Rent Payment Records
-    const newRentPayments: RentPayment[] = newTenants.map((t, idx) => ({
-      id: `pay-bulk-${timestamp}-${idx}`,
-      tenantId: t.id,
-      tenantName: t.name,
-      roomNumber: t.roomNumber,
-      amount: t.rentAmount,
-      month: currentMonthShort,
-      year: currentYear,
-      dueDate: getDueDateString(5),
-      paidDate: new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }).toUpperCase(),
-      status: 'Paid',
-      balance: 0,
-      paymentMode: 'Bank Transfer',
-      note: `Corporate billing: ${t.companyName || t.groupName}`,
-    }));
-    const updatedPayments = [...newRentPayments, ...rentPayments];
-
-    // Write all to localStorage synchronously
-    try {
-      localStorage.setItem('agam_pg_tenants', JSON.stringify(updatedTenants));
-      localStorage.setItem('agam_pg_rooms', JSON.stringify(updatedRooms));
-      localStorage.setItem('agam_pg_incomes', JSON.stringify(updatedIncomes));
-      localStorage.setItem('agam_pg_payments', JSON.stringify(updatedPayments));
-      localStorage.setItem('agam_pg_last_updated', new Date().toISOString());
-    } catch (e) {}
-
-    // Update React State
-    setTenants(updatedTenants);
-    setRooms(updatedRooms);
-    setIncomes(updatedIncomes);
-    setRentPayments(updatedPayments);
-
-    // Save to Cloud Firestore immediately
-    saveStateToCloudImmediately({
-      rooms: updatedRooms,
-      tenants: updatedTenants,
-      payments: updatedPayments,
-      incomes: updatedIncomes,
-      expenses,
-      maintenanceTickets,
-      staffContacts,
-      bulkGroups,
-      notices,
-      whatsappTemplates: whatsAppTemplates,
-    });
-
-    showToast(`Successfully checked in ${newTenants.length} residents in bulk!`);
-  };
-
-  // Month-end Corporate Group Rent Settlement
-  const handleSettleGroupRent = (
-    groupName: string,
-    companyName: string,
-    amount: number,
-    paymentMode: 'UPI' | 'Bank Transfer' | 'Cash'
-  ) => {
-    // Mark all active tenants of this group as Paid
-    const updatedTenants = tenants.map((t) => {
-      if (t.isBulkContract && (t.groupName === groupName || t.companyName === companyName)) {
-        return {
-          ...t,
-          status: 'Paid' as const,
-          balance: 0,
-          lastPaidDate: new Date().toISOString().split('T')[0],
-        };
-      }
-      return t;
-    });
-
-    // Record a single corporate consolidated income
-    const newIncome: Income = {
-      id: `inc-corp-${Date.now()}`,
-      title: `Corporate Monthly Rent - ${companyName || groupName}`,
-      category: 'Bulk Company Rent',
-      amount,
-      date: new Date().toISOString().split('T')[0],
-      receivedFrom: companyName || groupName,
-      paymentMode,
-      monthYear: getCurrentMonthYear(),
-      notes: `Consolidated month-end accommodation settlement for ${groupName}`,
-    };
-    const updatedIncomes = [newIncome, ...incomes];
-
-    setTenants(updatedTenants);
-    setIncomes(updatedIncomes);
-
-    try {
-      localStorage.setItem('agam_pg_tenants', JSON.stringify(updatedTenants));
-      localStorage.setItem('agam_pg_incomes', JSON.stringify(updatedIncomes));
-      localStorage.setItem('agam_pg_last_updated', new Date().toISOString());
-    } catch (e) {}
-
-    saveStateToCloudImmediately({
-      rooms,
-      tenants: updatedTenants,
-      payments: rentPayments,
-      incomes: updatedIncomes,
-      expenses,
-      maintenanceTickets,
-      staffContacts,
-      bulkGroups,
-      notices,
-      whatsappTemplates: whatsAppTemplates,
-    });
-
-    showToast(`Settled ₹${amount.toLocaleString('en-IN')} corporate rent for ${companyName || groupName}!`);
   };
 
   // Sync state with Cloud SQL (PostgreSQL asia-southeast1)
@@ -929,7 +717,6 @@ export default function App() {
           incomes,
           staffContacts,
           maintenanceTickets,
-          bulkGroups,
         }),
       });
 
@@ -958,7 +745,6 @@ export default function App() {
     // Clear all state arrays to completely empty
     setRooms([]);
     setTenants([]);
-    setBulkGroups([]);
     setRentPayments([]);
     setExpenses([]);
     setIncomes([]);
@@ -972,7 +758,6 @@ export default function App() {
     localStorage.setItem('agam_pg_demo_reset_done', 'true');
     localStorage.setItem('agam_pg_rooms', JSON.stringify([]));
     localStorage.setItem('agam_pg_tenants', JSON.stringify([]));
-    localStorage.setItem('agam_pg_bulk_groups', JSON.stringify([]));
     localStorage.setItem('agam_pg_payments', JSON.stringify([]));
     localStorage.setItem('agam_pg_expenses', JSON.stringify([]));
     localStorage.setItem('agam_pg_incomes', JSON.stringify([]));
@@ -990,7 +775,6 @@ export default function App() {
       expenses: [],
       maintenanceTickets: [],
       staffContacts: [],
-      bulkGroups: [],
       notices: [],
       whatsappTemplates: INITIAL_WA_TEMPLATES,
     });
@@ -1023,8 +807,8 @@ export default function App() {
     const newTenant: Tenant = {
       ...newTenantData,
       id: newId,
-      balance: newTenantData.isBulkContract ? 0 : newTenantData.rentAmount,
-      status: newTenantData.isBulkContract ? 'Paid' : 'Unpaid',
+      balance: newTenantData.rentAmount,
+      status: 'Unpaid',
       isActive: true,
     };
 
@@ -1064,7 +848,6 @@ export default function App() {
         receivedFrom: newTenant.name,
         paymentMode: 'UPI',
         monthYear: formatMonthYearFromDateString(newTenant.checkInDate || todayStr),
-        notes: newTenant.isBulkContract ? `Bulk contract: ${newTenant.groupName}` : undefined,
       };
       updatedIncomes = [depositIncome, ...incomes];
     }
@@ -1083,7 +866,6 @@ export default function App() {
       status: newTenant.status,
       balance: newTenant.balance || 0,
       paymentMode: 'UPI',
-      note: newTenant.isBulkContract ? `Corporate contract: ${newTenant.companyName}` : undefined,
     };
     const updatedPayments = [newPayment, ...rentPayments];
 
@@ -1111,7 +893,6 @@ export default function App() {
       expenses,
       maintenanceTickets,
       staffContacts,
-      bulkGroups,
       notices,
       whatsappTemplates: whatsAppTemplates,
     });
@@ -1177,7 +958,7 @@ export default function App() {
     const newIncome: Income = {
       id: `inc-${Date.now()}`,
       title: `Room Rent - Room ${tenant.roomNumber} (${tenant.name})`,
-      category: tenant.isBulkContract ? 'Bulk Company Rent' : 'Monthly Rent',
+      category: 'Monthly Rent',
       amount: details.amountPaid,
       date: getTodayDateString(),
       receivedFrom: tenant.name,
@@ -1206,7 +987,6 @@ export default function App() {
       expenses,
       maintenanceTickets,
       staffContacts,
-      bulkGroups,
       notices,
       whatsappTemplates: whatsAppTemplates,
     });
@@ -1271,7 +1051,6 @@ export default function App() {
       expenses,
       maintenanceTickets,
       staffContacts,
-      bulkGroups,
       notices,
       whatsappTemplates: whatsAppTemplates,
     });
@@ -1295,7 +1074,6 @@ export default function App() {
       expenses,
       maintenanceTickets,
       staffContacts,
-      bulkGroups,
       notices,
       whatsappTemplates: whatsAppTemplates,
     });
@@ -1319,7 +1097,6 @@ export default function App() {
       expenses,
       maintenanceTickets,
       staffContacts,
-      bulkGroups,
       notices,
       whatsappTemplates: whatsAppTemplates,
     });
@@ -1362,7 +1139,6 @@ export default function App() {
       expenses,
       maintenanceTickets,
       staffContacts,
-      bulkGroups,
       notices,
       whatsappTemplates: whatsAppTemplates,
     });
@@ -1392,7 +1168,6 @@ export default function App() {
       expenses,
       maintenanceTickets,
       staffContacts,
-      bulkGroups,
       notices,
       whatsappTemplates: whatsAppTemplates,
     });
@@ -1433,7 +1208,6 @@ export default function App() {
       expenses,
       maintenanceTickets,
       staffContacts,
-      bulkGroups,
       notices,
       whatsappTemplates: whatsAppTemplates,
     });
@@ -1462,7 +1236,6 @@ export default function App() {
       expenses,
       maintenanceTickets,
       staffContacts,
-      bulkGroups,
       notices,
       whatsappTemplates: whatsAppTemplates,
     });
@@ -1505,7 +1278,6 @@ export default function App() {
       expenses: updatedExpenses,
       maintenanceTickets,
       staffContacts,
-      bulkGroups,
       notices,
       whatsappTemplates: whatsAppTemplates,
     });
@@ -1528,7 +1300,6 @@ export default function App() {
       expenses: updatedExpenses,
       maintenanceTickets,
       staffContacts,
-      bulkGroups,
       notices,
       whatsappTemplates: whatsAppTemplates,
     });
@@ -1572,7 +1343,6 @@ export default function App() {
       expenses,
       maintenanceTickets,
       staffContacts,
-      bulkGroups,
       notices,
       whatsappTemplates: whatsAppTemplates,
     });
@@ -1595,7 +1365,6 @@ export default function App() {
       expenses,
       maintenanceTickets,
       staffContacts,
-      bulkGroups,
       notices,
       whatsappTemplates: whatsAppTemplates,
     });
@@ -1635,7 +1404,6 @@ export default function App() {
       expenses,
       maintenanceTickets: updated,
       staffContacts,
-      bulkGroups,
       notices,
       whatsappTemplates: whatsAppTemplates,
     });
@@ -1657,7 +1425,6 @@ export default function App() {
       expenses,
       maintenanceTickets: updated,
       staffContacts,
-      bulkGroups,
       notices,
       whatsappTemplates: whatsAppTemplates,
     });
@@ -1691,7 +1458,6 @@ export default function App() {
       expenses,
       maintenanceTickets,
       staffContacts: updatedStaff,
-      bulkGroups,
       notices,
       whatsappTemplates: whatsAppTemplates,
     });
@@ -1712,7 +1478,6 @@ export default function App() {
       expenses,
       maintenanceTickets,
       staffContacts: updatedStaff,
-      bulkGroups,
       notices,
       whatsappTemplates: whatsAppTemplates,
     });
@@ -1741,7 +1506,6 @@ export default function App() {
     if (!backupData) return;
     const r = backupData.rooms && Array.isArray(backupData.rooms) ? backupData.rooms : rooms;
     const t = backupData.tenants && Array.isArray(backupData.tenants) ? backupData.tenants : tenants;
-    const bg = backupData.bulkGroups && Array.isArray(backupData.bulkGroups) ? backupData.bulkGroups : bulkGroups;
     const p = backupData.rentPayments && Array.isArray(backupData.rentPayments) ? backupData.rentPayments : rentPayments;
     const exp = backupData.expenses && Array.isArray(backupData.expenses) ? backupData.expenses : expenses;
     const inc = backupData.incomes && Array.isArray(backupData.incomes) ? backupData.incomes : incomes;
@@ -1750,7 +1514,6 @@ export default function App() {
 
     setRooms(r);
     setTenants(t);
-    setBulkGroups(bg);
     setRentPayments(p);
     setExpenses(exp);
     setIncomes(inc);
@@ -1760,8 +1523,7 @@ export default function App() {
     try {
       localStorage.setItem('agam_pg_rooms', JSON.stringify(r));
       localStorage.setItem('agam_pg_tenants', JSON.stringify(t));
-      localStorage.setItem('agam_pg_bulk_groups', JSON.stringify(bg));
-      localStorage.setItem('agam_pg_payments', JSON.stringify(p));
+        localStorage.setItem('agam_pg_payments', JSON.stringify(p));
       localStorage.setItem('agam_pg_expenses', JSON.stringify(exp));
       localStorage.setItem('agam_pg_incomes', JSON.stringify(inc));
       localStorage.setItem('agam_pg_staff', JSON.stringify(sc));
@@ -1777,7 +1539,6 @@ export default function App() {
       expenses: exp,
       maintenanceTickets: mt,
       staffContacts: sc,
-      bulkGroups: bg,
       notices,
       whatsappTemplates: whatsAppTemplates,
     });
@@ -1849,8 +1610,8 @@ export default function App() {
     return (
       <div className="bg-slate-100/70 min-h-screen flex flex-col items-center justify-center gap-5">
         <AgamLogo size="lg" variant="full" />
-        <div className="w-9 h-9 rounded-full border-4 border-emerald-200 border-t-[#0a332c] animate-spin" />
-        <p className="text-[11px] font-extrabold uppercase tracking-[0.2em] text-slate-400">
+        <div className="w-11 h-11 rounded-full border-4 border-emerald-200 border-t-[#0a332c] animate-spin" />
+        <p className="text-[12px] font-extrabold uppercase tracking-[0.2em] text-slate-400">
           Loading your PG data…
         </p>
       </div>
@@ -1858,7 +1619,7 @@ export default function App() {
   }
 
   return (
-    <div className="bg-slate-100/70 min-h-screen text-slate-900 font-sans selection:bg-emerald-600 selection:text-white pb-[80px]">
+    <div className="bg-slate-100/70 min-h-screen text-slate-900 font-sans selection:bg-emerald-600 selection:text-white pb-[96px]">
       {/* Top App Bar */}
       <TopAppBar
         currentTab={currentTab}
@@ -1868,16 +1629,15 @@ export default function App() {
       />
 
       {/* Main Canvas Area */}
-      <main className="pt-[60px] pb-6 min-h-[calc(100vh-140px)]">
+      <main className="pt-[68px] pb-6 min-h-[calc(100vh-148px)]">
         {currentTab === 'home' && (
           <HomeScreen
             rooms={computedRooms}
             tenants={tenants}
-            bulkGroups={bulkGroups}
             expenses={expenses}
             incomes={incomes}
             onNavigate={handleNavigate}
-            onAddTenant={() => setIsAddTenantOpen(true)}
+            onAddTenant={() => openAddTenantModal()}
             onAddRoom={() => setIsAddRoomOpen(true)}
             onCollectRent={() => {
               setSelectedTenantForCollect(null);
@@ -1885,7 +1645,6 @@ export default function App() {
               setIsCollectRentOpen(true);
             }}
             onAddExpense={() => setIsAddExpenseOpen(true)}
-            onOpenBulkManager={() => setIsBulkManagerOpen(true)}
             onOpenAlertModal={(type) => {
               setAlertType(type);
               setIsActionRequiredOpen(true);
@@ -1907,21 +1666,19 @@ export default function App() {
               setSelectedRoomForEdit(room);
               setIsEditRoomOpen(true);
             }}
-            onAddTenantToRoom={() => setIsAddTenantOpen(true)}
+            onAddTenantToRoom={(roomNumber) => openAddTenantModal(roomNumber)}
           />
         )}
 
         {currentTab === 'people' && (
           <PeopleScreen
             tenants={tenants}
-            bulkGroups={bulkGroups}
             initialFilter={peopleFilter}
             onSelectTenant={(tenant) => {
               setSelectedTenant(tenant);
               setIsTenantDetailOpen(true);
             }}
-            onAddTenant={() => setIsAddTenantOpen(true)}
-            onOpenBulkManager={() => setIsBulkManagerOpen(true)}
+            onAddTenant={() => openAddTenantModal()}
             onCollectRent={(tenantId) => {
               const t = tenants.find((item) => item.id === tenantId);
               if (t) {
@@ -1966,7 +1723,6 @@ export default function App() {
             rentPayments={rentPayments}
             expenses={expenses}
             incomes={incomes}
-            bulkGroups={bulkGroups}
             onAddTicket={handleAddTicket}
             onUpdateTicketStatus={handleUpdateTicketStatus}
             onAddStaff={handleAddStaff}
@@ -1981,7 +1737,7 @@ export default function App() {
 
       {/* Floating Toast Message */}
       {toastMessage && (
-        <div className="fixed bottom-[80px] left-1/2 -translate-x-1/2 z-50 bg-[#0a332c] text-white text-[13px] font-bold px-4 py-2.5 rounded-full shadow-2xl flex items-center gap-2 border border-emerald-500/30 animate-in fade-in slide-in-from-bottom-2">
+        <div className="fixed bottom-[96px] left-1/2 -translate-x-1/2 z-50 bg-[#0a332c] text-white text-[13px] font-bold px-4 py-2.5 rounded-full shadow-2xl flex items-center gap-2 border border-emerald-500/30 animate-in fade-in slide-in-from-bottom-2">
           <span className="material-symbols-outlined text-[18px] text-emerald-400">check_circle</span>
           <span>{toastMessage}</span>
         </div>
@@ -2004,21 +1760,20 @@ export default function App() {
         onNavigate={handleNavigate}
         onResetData={handleResetData}
         showResetButton={!hasResetDemoData}
-        onAddTenant={() => setIsAddTenantOpen(true)}
+        onAddTenant={() => openAddTenantModal()}
         onAddRoom={() => setIsAddRoomOpen(true)}
         onAddExpense={() => setIsAddExpenseOpen(true)}
         onAddIncome={() => setIsAddIncomeOpen(true)}
-        onOpenBulkManager={() => setIsBulkManagerOpen(true)}
         onOpenWhatsAppTemplates={() => setIsWhatsAppTemplatesOpen(true)}
       />
 
       {/* Modals */}
       <AddTenantModal
         isOpen={isAddTenantOpen}
-        onClose={() => setIsAddTenantOpen(false)}
+        onClose={closeAddTenantModal}
         onAddTenant={handleAddTenant}
         rooms={rooms}
-        bulkGroups={bulkGroups}
+        defaultRoomNumber={addTenantDefaultRoom}
       />
 
       <CollectRentModal
@@ -2039,9 +1794,7 @@ export default function App() {
         onClose={() => setIsRoomDetailOpen(false)}
         room={activeSelectedRoom}
         tenants={tenants}
-        onAddTenantToRoom={() => {
-          setIsAddTenantOpen(true);
-        }}
+        onAddTenantToRoom={(roomNumber) => openAddTenantModal(roomNumber)}
         onEditRoom={(room) => {
           setSelectedRoomForEdit(room);
           setIsEditRoomOpen(true);
@@ -2117,19 +1870,6 @@ export default function App() {
           setSelectedPaymentForCollect(null);
           setIsCollectRentOpen(true);
         }}
-      />
-
-      {/* Bulk Group Corporate / Hotel Contracts Manager */}
-      <BulkGroupManagerModal
-        isOpen={isBulkManagerOpen}
-        onClose={() => setIsBulkManagerOpen(false)}
-        bulkGroups={bulkGroups}
-        tenants={tenants}
-        rooms={rooms}
-        onAddBulkGroup={handleAddBulkGroup}
-        onBulkCheckIn={handleBulkCheckIn}
-        onSettleGroupRent={handleSettleGroupRent}
-        onSendWhatsApp={handleSendWhatsApp}
       />
 
       {/* WhatsApp Message Template Studio */}

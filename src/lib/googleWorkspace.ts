@@ -150,128 +150,6 @@ export async function compressImageBlob(
   });
 }
 
-// ---------------- Group Specific Google Sheet Export ----------------
-export async function createGroupSpecificGoogleSpreadsheet(
-  accessToken: string,
-  groupName: string,
-  groupInfo: {
-    companyName: string;
-    contactPerson: string;
-    contactPhone: string;
-    rentPerPerson: number;
-    advancePerPerson: number;
-    billingModel: string;
-    notes?: string;
-  },
-  members: Array<{
-    id: string;
-    name: string;
-    phone: string;
-    roomNumber: number;
-    bedNumber?: string;
-    rentAmount: number;
-    securityDeposit: number;
-    status: string;
-    balance: number;
-    idProofType: string;
-    idProofNumber: string;
-    checkInDate: string;
-    documentsCollected?: boolean;
-    documentPhotoUrl?: string;
-    termsDocumentUrl?: string;
-  }>,
-  payments: Array<{
-    id: string;
-    tenantName: string;
-    roomNumber: number;
-    amount: number;
-    month: string;
-    paidDate?: string;
-    paymentMode: string;
-    status: string;
-  }>
-): Promise<{ spreadsheetId: string; spreadsheetUrl: string }> {
-  const totalRent = members.reduce((sum, m) => sum + (m.rentAmount || 0), 0);
-  const totalAdvance = members.reduce((sum, m) => sum + (m.securityDeposit || 0), 0);
-  const totalBalance = members.reduce((sum, m) => sum + (m.balance || 0), 0);
-  const timeTag = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-
-  const tabs: SheetTabDefinition[] = [
-    {
-      title: 'Group Summary',
-      headers: ['Field', 'Details'],
-      rows: [
-        ['Group / Batch Name', groupName],
-        ['Associated Company', groupInfo.companyName || 'N/A'],
-        ['Contact Person', groupInfo.contactPerson || 'N/A'],
-        ['Contact Phone', groupInfo.contactPhone || 'N/A'],
-        ['Billing Model', groupInfo.billingModel === 'company_end_of_month' ? 'Company End-of-Month Invoice' : 'Individual Monthly Rent'],
-        ['Total Allocated Members', members.length],
-        ['Agreed Rent / Person (₹)', groupInfo.rentPerPerson || 0],
-        ['Total Monthly Billing (₹)', totalRent],
-        ['Total Advance Deposit (₹)', totalAdvance],
-        ['Current Outstanding Dues (₹)', totalBalance],
-        ['Export Date', timeTag],
-        ['Contract Notes', groupInfo.notes || ''],
-      ],
-    },
-    {
-      title: 'Group Members Roster',
-      headers: [
-        'Resident ID',
-        'Member Name',
-        'Phone Number',
-        'Room No',
-        'Bed No',
-        'Monthly Rent (₹)',
-        'Advance (₹)',
-        'Due Balance (₹)',
-        'Payment Status',
-        'ID Proof Type',
-        'ID Number',
-        'Check-in Date',
-        'Docs Collected',
-        'ID Drive Link',
-        'T&C Drive Link',
-      ],
-      rows: members.map((m) => [
-        m.id,
-        m.name,
-        m.phone,
-        m.roomNumber,
-        m.bedNumber || '',
-        m.rentAmount,
-        m.securityDeposit,
-        m.balance,
-        m.status,
-        m.idProofType,
-        m.idProofNumber,
-        m.checkInDate,
-        m.documentsCollected !== false ? 'Yes' : 'No',
-        m.documentPhotoUrl || 'Not Attached',
-        m.termsDocumentUrl || 'Not Attached',
-      ]),
-    },
-    {
-      title: 'Group Payment Ledger',
-      headers: ['Payment ID', 'Resident Name', 'Room No', 'Amount (₹)', 'Month', 'Paid Date', 'Payment Mode', 'Status'],
-      rows: payments.map((p) => [
-        p.id,
-        p.tenantName,
-        p.roomNumber,
-        p.amount,
-        p.month,
-        p.paidDate || '',
-        p.paymentMode,
-        p.status,
-      ]),
-    },
-  ];
-
-  const title = `Agam PG • Group Report - ${groupName} (${timeTag})`;
-  return createPgGoogleSpreadsheet(accessToken, title, tabs);
-}
-
 // ---------------- Google Drive Folder Management ----------------
 export async function getOrCreateFolder(
   accessToken: string,
@@ -342,8 +220,6 @@ export async function getResidentDriveFolderId(
     name: string;
     roomNumber?: number;
     bedNumber?: string;
-    isBulkContract?: boolean;
-    groupName?: string;
   }
 ): Promise<{ folderId: string; folderPath: string }> {
   // 1. Master Root folder: configured or default "Agam PG Documents"
@@ -353,17 +229,10 @@ export async function getResidentDriveFolderId(
   let parentId = rootId;
   let path = rootFolderName;
 
-  // 2. Individual vs Group Category
-  if (tenant.isBulkContract && tenant.groupName) {
-    const groupsId = await getOrCreateFolder(accessToken, 'Group Bookings', parentId);
-    const specificGroupId = await getOrCreateFolder(accessToken, tenant.groupName.trim(), groupsId);
-    parentId = specificGroupId;
-    path += ` > Group Bookings > ${tenant.groupName.trim()}`;
-  } else {
-    const indId = await getOrCreateFolder(accessToken, 'Individual Residents', parentId);
-    parentId = indId;
-    path += ` > Individual Residents`;
-  }
+  // 2. Resident category folder
+  const indId = await getOrCreateFolder(accessToken, 'Individual Residents', parentId);
+  parentId = indId;
+  path += ` > Individual Residents`;
 
   // 3. Person's folder: "Name - Room 101 (Bed B1)"
   const roomText = tenant.roomNumber ? `Room ${tenant.roomNumber}` : 'Room Unassigned';

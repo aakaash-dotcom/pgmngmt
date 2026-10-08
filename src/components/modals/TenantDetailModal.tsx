@@ -66,8 +66,6 @@ export const TenantDetailModal: React.FC<TenantDetailModalProps> = ({
       .replace(/{due_date}/g, tenant.dueDate)
       .replace(/{deposit}/g, tenant.securityDeposit.toLocaleString('en-IN'))
       .replace(/{check_in_date}/g, tenant.checkInDate)
-      .replace(/{company}/g, tenant.companyName || 'Company')
-      .replace(/{group_name}/g, tenant.groupName || 'Group')
       .replace(/{upi_id}/g, OWNER_UPI_ID)
       .replace(/{owner_phone}/g, OWNER_PHONE)
       .replace(/{pg_name}/g, PG_NAME);
@@ -98,7 +96,7 @@ export const TenantDetailModal: React.FC<TenantDetailModalProps> = ({
               <div className="flex items-center gap-2">
                 <h3 className="text-[18px] font-black leading-tight text-white">{tenant.name}</h3>
                 <span
-                  className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
+                  className={`text-[11px] font-extrabold px-2 py-0.5 rounded-full ${
                     tenant.status === 'Paid'
                       ? 'bg-emerald-400 text-slate-950'
                       : tenant.status === 'Overdue'
@@ -109,7 +107,7 @@ export const TenantDetailModal: React.FC<TenantDetailModalProps> = ({
                   {tenant.isActive ? tenant.status : 'Checked Out'}
                 </span>
               </div>
-              <p className="text-[12px] text-emerald-100/80 font-medium mt-0.5">
+              <p className="text-[13px] text-emerald-100/80 font-medium mt-0.5">
                 Room {tenant.roomNumber} • <span className="font-bold text-amber-300">{tenant.bedNumber || 'B1'}</span> • Checked in {tenant.checkInDate}
               </p>
             </div>
@@ -129,56 +127,24 @@ export const TenantDetailModal: React.FC<TenantDetailModalProps> = ({
           <div className="grid grid-cols-2 gap-2.5">
             <a
               href={`tel:${tenant.phone}`}
-              className="flex items-center justify-center gap-2 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-[12px] rounded-xl border border-slate-200 transition-colors"
+              className="flex items-center justify-center gap-2 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-[13px] rounded-xl border border-slate-200 transition-colors"
             >
               <span className="material-symbols-outlined text-[18px] text-[#0a332c]">call</span>
               <span>Call ({tenant.phone})</span>
             </a>
             <button
               onClick={handleTriggerWhatsApp}
-              className="flex items-center justify-center gap-2 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-[12px] rounded-xl shadow-xs transition-colors"
+              className="flex items-center justify-center gap-2 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-[13px] rounded-xl shadow-xs transition-colors"
             >
               <span className="material-symbols-outlined text-[18px]">chat</span>
               <span>Send WhatsApp</span>
             </button>
           </div>
 
-          {/* Corporate / Bulk Contract Information */}
-          {tenant.isBulkContract && (
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 flex flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-extrabold uppercase tracking-wider text-amber-900 flex items-center gap-1.5">
-                  <span className="material-symbols-outlined text-[16px] text-amber-700">corporate_fare</span>
-                  Corporate / Hotel Contract
-                </span>
-                <span className="text-[10px] font-bold bg-amber-200 text-amber-900 px-2 py-0.5 rounded">
-                  End of Month Billed
-                </span>
-              </div>
-
-              <div className="flex flex-col gap-1 text-[12px]">
-                <p className="text-slate-800 font-semibold">
-                  <strong>Batch Group:</strong> {tenant.groupName || 'Bulk Group'}
-                </p>
-                <p className="text-slate-800 font-semibold">
-                  <strong>Company:</strong> {tenant.companyName || 'Hotel / Enterprise'}
-                </p>
-                {tenant.companyContactPhone && (
-                  <p className="text-slate-700">
-                    <strong>Supervisor / HR:</strong> {tenant.companyContactPhone}
-                  </p>
-                )}
-                <p className="text-[11px] text-amber-900 bg-amber-100/70 p-2 rounded-lg mt-1">
-                  💡 <em>Policy: Advance collected at check-in. Monthly rent is billed collectively to company at month end.</em>
-                </p>
-              </div>
-            </div>
-          )}
-
           {/* Financial summary card */}
           <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 flex justify-between items-center">
             <div>
-              <span className="text-[10px] text-slate-500 uppercase font-extrabold tracking-wider block">
+              <span className="text-[11px] text-slate-500 uppercase font-extrabold tracking-wider block">
                 Monthly Rent
               </span>
               <span className="text-[18px] font-black text-[#0a332c]">
@@ -187,7 +153,7 @@ export const TenantDetailModal: React.FC<TenantDetailModalProps> = ({
             </div>
 
             <div className="text-center">
-              <span className="text-[10px] text-slate-500 uppercase font-extrabold tracking-wider block">
+              <span className="text-[11px] text-slate-500 uppercase font-extrabold tracking-wider block">
                 Due Balance
               </span>
               <span className={`text-[16px] font-black ${tenant.balance > 0 ? 'text-rose-600' : 'text-emerald-700'}`}>
@@ -196,7 +162,7 @@ export const TenantDetailModal: React.FC<TenantDetailModalProps> = ({
             </div>
 
             <div className="text-right">
-              <span className="text-[10px] text-slate-500 uppercase font-extrabold tracking-wider block">
+              <span className="text-[11px] text-slate-500 uppercase font-extrabold tracking-wider block">
                 Advance Deposit
               </span>
               <span className="text-[16px] font-bold text-slate-800">
@@ -207,14 +173,14 @@ export const TenantDetailModal: React.FC<TenantDetailModalProps> = ({
 
           {/* WhatsApp Template Chooser */}
           <div className="bg-emerald-50/50 border border-emerald-200 p-3 rounded-xl flex flex-col gap-2">
-            <span className="text-[11px] font-extrabold uppercase tracking-wider text-emerald-900 flex items-center gap-1">
+            <span className="text-[12px] font-extrabold uppercase tracking-wider text-emerald-900 flex items-center gap-1">
               <span className="material-symbols-outlined text-[15px] text-emerald-700">chat_bubble</span>
               Quick WhatsApp Template:
             </span>
             <select
               value={selectedTemplateId}
               onChange={(e) => setSelectedTemplateId(e.target.value)}
-              className="w-full h-[36px] px-3 border border-emerald-300 rounded-lg bg-white font-bold text-slate-900 text-[12px] focus:outline-none"
+              className="w-full h-[46px] px-3 border border-emerald-300 rounded-lg bg-white font-bold text-slate-900 text-[13px] focus:outline-none"
             >
               <option value="default">Standard Rent Due Reminder</option>
               {templates.map((t) => (
@@ -226,7 +192,7 @@ export const TenantDetailModal: React.FC<TenantDetailModalProps> = ({
           </div>
 
           {/* Detail fields */}
-          <div className="border border-slate-200 rounded-xl p-3.5 flex flex-col gap-2 text-[12px]">
+          <div className="border border-slate-200 rounded-xl p-3.5 flex flex-col gap-2 text-[13px]">
             <div className="flex justify-between py-1 border-b border-slate-100">
               <span className="text-slate-500 font-medium">Monthly Due Date</span>
               <span className="font-bold text-slate-900">{tenant.dueDate}</span>
@@ -252,11 +218,11 @@ export const TenantDetailModal: React.FC<TenantDetailModalProps> = ({
           {/* Document & Agreement Photos / Links */}
           <div className="border border-slate-200 rounded-xl p-3.5 flex flex-col gap-2.5 bg-slate-50">
             <div className="flex justify-between items-center">
-              <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-700 flex items-center gap-1">
+              <span className="text-[12px] font-extrabold uppercase tracking-wider text-slate-700 flex items-center gap-1">
                 <span className="material-symbols-outlined text-[16px] text-[#0a332c]">verified</span>
                 Documents & Google Drive
               </span>
-              <span className="text-[10px] text-slate-500 font-semibold">
+              <span className="text-[11px] text-slate-500 font-semibold">
                 Auto-organized folder
               </span>
             </div>
@@ -268,8 +234,6 @@ export const TenantDetailModal: React.FC<TenantDetailModalProps> = ({
                   tenantName={tenant.name}
                   roomNumber={tenant.roomNumber}
                   bedNumber={tenant.bedNumber}
-                  isBulkContract={tenant.isBulkContract}
-                  groupName={tenant.groupName}
                   docType={activeScanner === 'id' ? `ID Proof (${tenant.idProofType || 'Aadhaar'})` : 'Terms & Conditions Agreement'}
                   compact={true}
                   onUploaded={(url) => {
@@ -295,23 +259,23 @@ export const TenantDetailModal: React.FC<TenantDetailModalProps> = ({
                 <div className="flex items-center gap-2 truncate">
                   <span className="material-symbols-outlined text-[18px] text-emerald-700">badge</span>
                   <div className="truncate">
-                    <span className="font-bold text-[12px] text-slate-800 block leading-tight">
+                    <span className="font-bold text-[13px] text-slate-800 block leading-tight">
                       {tenant.idProofType || 'Aadhaar'} Document
                     </span>
-                    <span className="text-[10px] text-slate-500 truncate block">
+                    <span className="text-[11px] text-slate-500 truncate block">
                       {tenant.idProofNumber ? `#${tenant.idProofNumber}` : 'Number not registered'}
                     </span>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1.5 shrink-0">
+                <div className="flex items-center gap-2 shrink-0">
                   {tenant.documentPhotoUrl ? (
                     <>
                       {tenant.documentPhotoUrl.startsWith('data:image') ? (
                         <button
                           type="button"
                           onClick={() => setPreviewImage({ url: tenant.documentPhotoUrl!, title: `${tenant.name} - ${tenant.idProofType || 'ID'} Photo` })}
-                          className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold rounded-md text-[11px] flex items-center gap-1 transition-colors border border-emerald-200"
+                          className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold rounded-md text-[12px] flex items-center gap-1 transition-colors border border-emerald-200"
                         >
                           <span className="material-symbols-outlined text-[13px]">visibility</span>
                           <span>View Photo</span>
@@ -321,10 +285,10 @@ export const TenantDetailModal: React.FC<TenantDetailModalProps> = ({
                           href={tenant.documentPhotoUrl}
                           target="_blank"
                           rel="noreferrer"
-                          className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-md text-[11px] flex items-center gap-1 transition-colors"
+                          className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-md text-[12px] flex items-center gap-1 transition-colors"
                         >
                           <span>View in Drive</span>
-                          <span className="material-symbols-outlined text-[12px]">open_in_new</span>
+                          <span className="material-symbols-outlined text-[13px]">open_in_new</span>
                         </a>
                       )}
                       <button
@@ -333,7 +297,7 @@ export const TenantDetailModal: React.FC<TenantDetailModalProps> = ({
                           setEditingLinkFor(editingLinkFor === 'id' ? null : 'id');
                           setManualLinkInput(tenant.documentPhotoUrl || '');
                         }}
-                        className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-md text-[10px] transition-colors"
+                        className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-md text-[11px] transition-colors"
                         title="Change Google Drive link"
                       >
                         Change Link
@@ -355,14 +319,14 @@ export const TenantDetailModal: React.FC<TenantDetailModalProps> = ({
                           setEditingLinkFor(editingLinkFor === 'id' ? null : 'id');
                           setManualLinkInput('');
                         }}
-                        className="px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-md text-[10px] transition-colors"
+                        className="px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-md text-[11px] transition-colors"
                       >
                         Paste Link
                       </button>
                       <button
                         type="button"
                         onClick={() => setActiveScanner(activeScanner === 'id' ? null : 'id')}
-                        className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold rounded-md text-[11px] flex items-center gap-1 transition-colors"
+                        className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold rounded-md text-[12px] flex items-center gap-1 transition-colors"
                       >
                         <span className="material-symbols-outlined text-[14px]">photo_camera</span>
                         <span>Upload</span>
@@ -374,9 +338,9 @@ export const TenantDetailModal: React.FC<TenantDetailModalProps> = ({
 
               {/* Inline editor to change or paste Drive link */}
               {editingLinkFor === 'id' && (
-                <div className="bg-blue-50/70 p-2 rounded-lg border border-blue-200 flex flex-col gap-1.5 mt-1">
+                <div className="bg-blue-50/70 p-2 rounded-lg border border-blue-200 flex flex-col gap-2 mt-1">
                   <div className="flex items-center justify-between">
-                    <label className="text-[10px] font-bold text-blue-950">
+                    <label className="text-[11px] font-bold text-blue-950">
                       Google Drive Link / Document URL for {tenant.name}'s ID:
                     </label>
                     {tenant.documentPhotoUrl && (
@@ -392,7 +356,7 @@ export const TenantDetailModal: React.FC<TenantDetailModalProps> = ({
                           }
                           setEditingLinkFor(null);
                         }}
-                        className="text-[10px] text-red-600 hover:underline font-semibold"
+                        className="text-[11px] text-red-600 hover:underline font-semibold"
                       >
                         Remove Link
                       </button>
@@ -403,13 +367,13 @@ export const TenantDetailModal: React.FC<TenantDetailModalProps> = ({
                     value={manualLinkInput}
                     onChange={(e) => setManualLinkInput(e.target.value)}
                     placeholder="https://drive.google.com/file/d/..."
-                    className="w-full text-[11px] px-2.5 py-1.5 bg-white border border-slate-300 rounded font-mono focus:outline-none focus:border-blue-500"
+                    className="w-full text-[12px] h-[40px] px-3 bg-white border border-slate-300 rounded font-mono focus:outline-none focus:border-blue-500"
                   />
-                  <div className="flex items-center justify-end gap-1.5">
+                  <div className="flex items-center justify-end gap-2">
                     <button
                       type="button"
                       onClick={() => setEditingLinkFor(null)}
-                      className="text-[11px] text-slate-500 hover:text-slate-700 font-medium px-2 py-1"
+                      className="text-[12px] text-slate-500 hover:text-slate-700 font-medium px-2 py-1"
                     >
                       Cancel
                     </button>
@@ -425,7 +389,7 @@ export const TenantDetailModal: React.FC<TenantDetailModalProps> = ({
                         }
                         setEditingLinkFor(null);
                       }}
-                      className="text-[11px] bg-blue-700 hover:bg-blue-800 text-white font-bold px-3 py-1 rounded"
+                      className="text-[12px] bg-blue-700 hover:bg-blue-800 text-white font-bold px-3 py-1 rounded"
                     >
                       Save Drive Link
                     </button>
@@ -440,23 +404,23 @@ export const TenantDetailModal: React.FC<TenantDetailModalProps> = ({
                 <div className="flex items-center gap-2 truncate">
                   <span className="material-symbols-outlined text-[18px] text-indigo-700">description</span>
                   <div className="truncate">
-                    <span className="font-bold text-[12px] text-slate-800 block leading-tight">
+                    <span className="font-bold text-[13px] text-slate-800 block leading-tight">
                       Terms & Conditions Agreement
                     </span>
-                    <span className="text-[10px] text-slate-500 truncate block">
+                    <span className="text-[11px] text-slate-500 truncate block">
                       {tenant.agreementCollected ? 'Signed copy collected' : 'Pending signature'}
                     </span>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1.5 shrink-0">
+                <div className="flex items-center gap-2 shrink-0">
                   {tenant.termsDocumentUrl ? (
                     <>
                       {tenant.termsDocumentUrl.startsWith('data:image') ? (
                         <button
                           type="button"
                           onClick={() => setPreviewImage({ url: tenant.termsDocumentUrl!, title: `${tenant.name} - Agreement Document` })}
-                          className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 font-bold rounded-md text-[11px] flex items-center gap-1 transition-colors border border-indigo-200"
+                          className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 font-bold rounded-md text-[12px] flex items-center gap-1 transition-colors border border-indigo-200"
                         >
                           <span className="material-symbols-outlined text-[13px]">visibility</span>
                           <span>View Photo</span>
@@ -466,10 +430,10 @@ export const TenantDetailModal: React.FC<TenantDetailModalProps> = ({
                           href={tenant.termsDocumentUrl}
                           target="_blank"
                           rel="noreferrer"
-                          className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-md text-[11px] flex items-center gap-1 transition-colors"
+                          className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-md text-[12px] flex items-center gap-1 transition-colors"
                         >
                           <span>View in Drive</span>
-                          <span className="material-symbols-outlined text-[12px]">open_in_new</span>
+                          <span className="material-symbols-outlined text-[13px]">open_in_new</span>
                         </a>
                       )}
                       <button
@@ -478,7 +442,7 @@ export const TenantDetailModal: React.FC<TenantDetailModalProps> = ({
                           setEditingLinkFor(editingLinkFor === 'terms' ? null : 'terms');
                           setManualLinkInput(tenant.termsDocumentUrl || '');
                         }}
-                        className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-md text-[10px] transition-colors"
+                        className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-md text-[11px] transition-colors"
                         title="Change Google Drive link"
                       >
                         Change Link
@@ -500,14 +464,14 @@ export const TenantDetailModal: React.FC<TenantDetailModalProps> = ({
                           setEditingLinkFor(editingLinkFor === 'terms' ? null : 'terms');
                           setManualLinkInput('');
                         }}
-                        className="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded-md text-[10px] transition-colors"
+                        className="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded-md text-[11px] transition-colors"
                       >
                         Paste Link
                       </button>
                       <button
                         type="button"
                         onClick={() => setActiveScanner(activeScanner === 'terms' ? null : 'terms')}
-                        className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 font-bold rounded-md text-[11px] flex items-center gap-1 transition-colors"
+                        className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 font-bold rounded-md text-[12px] flex items-center gap-1 transition-colors"
                       >
                         <span className="material-symbols-outlined text-[14px]">photo_camera</span>
                         <span>Upload</span>
@@ -519,9 +483,9 @@ export const TenantDetailModal: React.FC<TenantDetailModalProps> = ({
 
               {/* Inline editor to change or paste Agreement Drive link */}
               {editingLinkFor === 'terms' && (
-                <div className="bg-indigo-50/70 p-2 rounded-lg border border-indigo-200 flex flex-col gap-1.5 mt-1">
+                <div className="bg-indigo-50/70 p-2 rounded-lg border border-indigo-200 flex flex-col gap-2 mt-1">
                   <div className="flex items-center justify-between">
-                    <label className="text-[10px] font-bold text-indigo-950">
+                    <label className="text-[11px] font-bold text-indigo-950">
                       Google Drive Link for Signed Agreement:
                     </label>
                     {tenant.termsDocumentUrl && (
@@ -537,7 +501,7 @@ export const TenantDetailModal: React.FC<TenantDetailModalProps> = ({
                           }
                           setEditingLinkFor(null);
                         }}
-                        className="text-[10px] text-red-600 hover:underline font-semibold"
+                        className="text-[11px] text-red-600 hover:underline font-semibold"
                       >
                         Remove Link
                       </button>
@@ -548,13 +512,13 @@ export const TenantDetailModal: React.FC<TenantDetailModalProps> = ({
                     value={manualLinkInput}
                     onChange={(e) => setManualLinkInput(e.target.value)}
                     placeholder="https://drive.google.com/file/d/..."
-                    className="w-full text-[11px] px-2.5 py-1.5 bg-white border border-slate-300 rounded font-mono focus:outline-none focus:border-indigo-500"
+                    className="w-full text-[12px] h-[40px] px-3 bg-white border border-slate-300 rounded font-mono focus:outline-none focus:border-indigo-500"
                   />
-                  <div className="flex items-center justify-end gap-1.5">
+                  <div className="flex items-center justify-end gap-2">
                     <button
                       type="button"
                       onClick={() => setEditingLinkFor(null)}
-                      className="text-[11px] text-slate-500 hover:text-slate-700 font-medium px-2 py-1"
+                      className="text-[12px] text-slate-500 hover:text-slate-700 font-medium px-2 py-1"
                     >
                       Cancel
                     </button>
@@ -570,7 +534,7 @@ export const TenantDetailModal: React.FC<TenantDetailModalProps> = ({
                         }
                         setEditingLinkFor(null);
                       }}
-                      className="text-[11px] bg-indigo-700 hover:bg-indigo-800 text-white font-bold px-3 py-1 rounded"
+                      className="text-[12px] bg-indigo-700 hover:bg-indigo-800 text-white font-bold px-3 py-1 rounded"
                     >
                       Save Drive Link
                     </button>
@@ -583,20 +547,20 @@ export const TenantDetailModal: React.FC<TenantDetailModalProps> = ({
           {/* Notes */}
           <div className="border border-slate-200 rounded-xl p-3.5 flex flex-col gap-2">
             <div className="flex justify-between items-center">
-              <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500">
+              <span className="text-[12px] font-extrabold uppercase tracking-wider text-slate-500">
                 Hostel Notes & Workplace
               </span>
               {!isEditingNotes ? (
                 <button
                   onClick={() => setIsEditingNotes(true)}
-                  className="text-[11px] font-bold text-[#0a332c] hover:underline"
+                  className="text-[12px] font-bold text-[#0a332c] hover:underline"
                 >
                   Edit
                 </button>
               ) : (
                 <button
                   onClick={handleSaveNotes}
-                  className="text-[11px] font-extrabold text-emerald-700 hover:underline"
+                  className="text-[12px] font-extrabold text-emerald-700 hover:underline"
                 >
                   Save
                 </button>
@@ -608,10 +572,10 @@ export const TenantDetailModal: React.FC<TenantDetailModalProps> = ({
                 rows={2}
                 value={notesText}
                 onChange={(e) => setNotesText(e.target.value)}
-                className="w-full p-2 border border-slate-300 rounded-lg text-[12px] focus:outline-none"
+                className="w-full p-2 border border-slate-300 rounded-lg text-[13px] focus:outline-none"
               />
             ) : (
-              <p className="text-[12px] text-slate-700">
+              <p className="text-[13px] text-slate-700">
                 {tenant.notes || <span className="text-slate-400 italic">No internal notes added.</span>}
               </p>
             )}
@@ -625,7 +589,7 @@ export const TenantDetailModal: React.FC<TenantDetailModalProps> = ({
                   onClose();
                   onCollectRent(tenant);
                 }}
-                className="flex-1 h-[44px] bg-[#0a332c] hover:bg-[#0f4239] text-white font-extrabold rounded-xl shadow-xs transition-colors flex items-center justify-center gap-1.5 text-[13px]"
+                className="flex-1 h-[48px] bg-[#0a332c] hover:bg-[#0f4239] text-white font-extrabold rounded-xl shadow-xs transition-colors flex items-center justify-center gap-2 text-[14px]"
               >
                 <span className="material-symbols-outlined text-[18px]">payments</span>
                 <span>Collect Rent</span>
@@ -639,7 +603,7 @@ export const TenantDetailModal: React.FC<TenantDetailModalProps> = ({
                   onClose();
                 }
               }}
-              className={`h-[44px] px-4 font-bold rounded-xl text-[12px] transition-colors ${
+              className={`h-[48px] px-4 font-bold rounded-xl text-[13px] transition-colors ${
                 tenant.isActive
                   ? 'bg-slate-100 hover:bg-rose-50 text-slate-700 hover:text-rose-700'
                   : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100'
@@ -666,7 +630,7 @@ export const TenantDetailModal: React.FC<TenantDetailModalProps> = ({
               <button
                 type="button"
                 onClick={() => setPreviewImage(null)}
-                className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white"
+                className="w-10 h-10 flex items-center justify-center rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white"
               >
                 <span className="material-symbols-outlined text-[18px]">close</span>
               </button>
@@ -682,7 +646,7 @@ export const TenantDetailModal: React.FC<TenantDetailModalProps> = ({
               <button
                 type="button"
                 onClick={() => setPreviewImage(null)}
-                className="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl text-[12px]"
+                className="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl text-[13px]"
               >
                 Close Preview
               </button>
