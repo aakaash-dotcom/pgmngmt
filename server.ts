@@ -77,6 +77,81 @@ async function startServer() {
     }
   });
 
+  // Google Apps Script Proxy: Uploads captured tenant photos directly to user's Google Drive without client OAuth/CORS issues!
+  app.post("/api/drive/upload-appscript", async (req, res) => {
+    try {
+      const { scriptUrl, base64, filename, folderId } = req.body;
+      if (!scriptUrl) {
+        return res.status(400).json({ error: "Missing scriptUrl parameter" });
+      }
+      if (!base64) {
+        return res.status(400).json({ error: "Missing base64 image data" });
+      }
+
+      const response = await fetch(scriptUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          base64,
+          base64Data: base64,
+          filename: filename || `Document_${Date.now()}.jpg`,
+          fileName: filename || `Document_${Date.now()}.jpg`,
+          folderName: "Agam PG Documents",
+          folderId: folderId || "",
+        }),
+        redirect: "follow",
+      });
+
+      const responseText = await response.text();
+      let responseData;
+      try {
+        responseData = JSON.parse(responseText);
+      } catch {
+        responseData = { status: "success", raw: responseText };
+      }
+
+      res.json(responseData);
+    } catch (error: any) {
+      console.error("Apps Script upload proxy error:", error);
+      res.status(500).json({ error: error.message || "Failed to upload via Google Apps Script" });
+    }
+  });
+
+  // Google Apps Script Proxy: Exports entire PG ledger / financial tables directly to Google Sheets in User's Drive
+  app.post("/api/drive/export-sheet-appscript", async (req, res) => {
+    try {
+      const { scriptUrl, title, tabs, folderName } = req.body;
+      if (!scriptUrl) {
+        return res.status(400).json({ error: "Missing scriptUrl parameter" });
+      }
+
+      const response = await fetch(scriptUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "createSheet",
+          title: title || `Agam PG Master Ledger - ${new Date().toLocaleDateString('en-IN')}`,
+          folderName: folderName || "Agam PG Documents",
+          tabs: tabs || [],
+        }),
+        redirect: "follow",
+      });
+
+      const responseText = await response.text();
+      let responseData;
+      try {
+        responseData = JSON.parse(responseText);
+      } catch {
+        responseData = { status: "success", raw: responseText };
+      }
+
+      res.json(responseData);
+    } catch (error: any) {
+      console.error("Apps Script sheet export proxy error:", error);
+      res.status(500).json({ error: error.message || "Failed to export sheet via Google Apps Script" });
+    }
+  });
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({

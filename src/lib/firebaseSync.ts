@@ -4,6 +4,7 @@ import {
   doc, 
   setDoc, 
   getDoc, 
+  getDocFromServer,
   onSnapshot, 
   enableIndexedDbPersistence
 } from 'firebase/firestore';
@@ -74,54 +75,127 @@ export const getDeviceId = (): string => {
 
 // Debounce timer for saving to cloud
 let saveTimeout: any = null;
+let pendingSaveData: AppSyncData | null = null;
 
 export const saveStateToCloudImmediately = async (data: Omit<AppSyncData, 'lastUpdated' | 'updatedByDeviceId'>) => {
   if (saveTimeout) clearTimeout(saveTimeout);
+  pendingSaveData = null;
   try {
+    const timestamp = new Date().toISOString();
     const payload: AppSyncData = {
       ...data,
       isDemoReset: true,
-      lastUpdated: new Date().toISOString(),
+      lastUpdated: timestamp,
       updatedByDeviceId: getDeviceId(),
     };
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('agam_pg_last_updated', timestamp);
+    }
     await setDoc(GLOBAL_SYNC_DOC_REF, payload);
-    console.log('⚡ Cloud sync: Force-synced PG data to Firestore immediately.');
+    console.log('⚡ Cloud sync: Force-synced PG data to Firestore immediately at', timestamp);
   } catch (error) {
     console.error('Cloud sync error saving state immediately:', error);
   }
 };
 
 export const saveStateToCloud = (data: Omit<AppSyncData, 'lastUpdated' | 'updatedByDeviceId'>) => {
+  const timestamp = new Date().toISOString();
+  const isDemoResetDone = typeof window !== 'undefined' ? localStorage.getItem('agam_pg_demo_reset_done') === 'true' : true;
+  
+  const payload: AppSyncData = {
+    ...data,
+    isDemoReset: isDemoResetDone,
+    lastUpdated: timestamp,
+    updatedByDeviceId: getDeviceId(),
+  };
+
+  pendingSaveData = payload;
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('agam_pg_last_updated', timestamp);
+  }
+
   if (saveTimeout) clearTimeout(saveTimeout);
 
   saveTimeout = setTimeout(async () => {
+    if (!pendingSaveData) return;
+    const toSave = pendingSaveData;
+    pendingSaveData = null;
     try {
-      const isDemoResetDone = localStorage.getItem('agam_pg_demo_reset_done') === 'true';
-      const payload: AppSyncData = {
-        ...data,
-        isDemoReset: isDemoResetDone,
-        lastUpdated: new Date().toISOString(),
-        updatedByDeviceId: getDeviceId(),
-      };
-      await setDoc(GLOBAL_SYNC_DOC_REF, payload);
+      await setDoc(GLOBAL_SYNC_DOC_REF, toSave);
       console.log('⚡ Cloud sync: Successfully synchronized latest PG data to Firestore.');
     } catch (error) {
       console.error('Cloud sync error saving state:', error);
     }
-  }, 1000); // 1-second debounce to batch rapid changes
+  }, 250); // 250ms fast debounce
 };
+
+// Flush pending save immediately on page unload, visibility change or route change (essential on mobile)
+if (typeof window !== 'undefined') {
+  const flushSave = () => {
+    if (pendingSaveData) {
+      setDoc(GLOBAL_SYNC_DOC_REF, pendingSaveData).catch(() => {});
+    }
+  };
+  window.addEventListener('beforeunload', flushSave);
+  window.addEventListener('pagehide', flushSave);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+      flushSave();
+    }
+  });
+}
 
 export const fetchInitialCloudData = async (): Promise<AppSyncData | null> => {
   try {
-    const snap = await getDoc(GLOBAL_SYNC_DOC_REF);
+    // Attempt fetching directly from server first to prevent stale local cache
+    const snap = await getDocFromServer(GLOBAL_SYNC_DOC_REF);
     if (snap.exists()) {
       return snap.data() as AppSyncData;
     }
-  } catch (error) {
-    console.warn('Could not load initial cloud state:', error);
+  } catch (serverErr) {
+    console.warn('Could not fetch from server directly, falling back to cache:', serverErr);
+    try {
+      const snap = await getDoc(GLOBAL_SYNC_DOC_REF);
+      if (snap.exists()) {
+        return snap.data() as AppSyncData;
+      }
+    } catch (e) {
+      console.warn('Could not load initial cloud state:', e);
+    }
   }
   return null;
 };
+
+// Robust helper to merge local and remote arrays without losing items
+export function mergeUniqueById<T extends Record<string, any>>(
+  localList: T[] = [],
+  remoteList: T[] = [],
+  idKey: keyof T = 'id'
+): T[] {
+  const map = new Map<string, T>();
+
+  // Add all remote items first
+  for (const item of remoteList) {
+    if (item && item[idKey]) {
+      map.set(String(item[idKey]), item);
+    }
+  }
+
+  // Overlay local items
+  for (const item of localList) {
+    if (item && item[idKey]) {
+      const key = String(item[idKey]);
+      if (!map.has(key)) {
+        map.set(key, item);
+      } else {
+        // Keep the one with more data or newer info
+        map.set(key, { ...map.get(key)!, ...item });
+      }
+    }
+  }
+
+  return Array.from(map.values());
+}
 
 export const subscribeToCloudUpdates = (
   onRemoteChange: (data: AppSyncData) => void

@@ -32,13 +32,13 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   onOpenAlertModal,
 }) => {
   // Dynamic occupancy calculations
-  const totalCapacity = rooms.reduce((acc, r) => acc + r.capacity, 0) || 1;
+  const totalCapacity = rooms.reduce((acc, r) => acc + r.capacity, 0);
   const occupiedBeds = rooms.reduce(
     (acc, r) => acc + (r.status === 'maintenance' ? 0 : r.occupied),
     0
   );
   const vacantBeds = Math.max(0, totalCapacity - occupiedBeds);
-  const occupancyPercentage = Math.round((occupiedBeds / totalCapacity) * 100);
+  const occupancyPercentage = totalCapacity > 0 ? Math.round((occupiedBeds / totalCapacity) * 100) : 0;
 
   // Financial calculations for current month
   const activeTenants = tenants.filter((t) => t.isActive);

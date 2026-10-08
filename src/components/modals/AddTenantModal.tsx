@@ -78,6 +78,8 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({
   
   // Document capture scanner drawers
   const [activeScanner, setActiveScanner] = useState<'id' | 'terms' | null>(null);
+  const [editingLinkFor, setEditingLinkFor] = useState<'id' | 'terms' | null>(null);
+  const [manualLinkInput, setManualLinkInput] = useState<string>('');
 
   // Bulk Group / Corporate Contract Fields
   const [isBulkContract, setIsBulkContract] = useState(false);
@@ -457,9 +459,23 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({
                 <label className="block font-bold text-slate-700 text-[11px] mb-1">
                   Select Room (Occupancy / Total) *
                 </label>
-                {vacantRooms.length === 0 ? (
+                {rooms.length === 0 ? (
+                  <div>
+                    <input
+                      type="number"
+                      required
+                      value={roomNumber || ''}
+                      onChange={(e) => setRoomNumber(Number(e.target.value))}
+                      placeholder="e.g. 101"
+                      className="w-full h-[40px] px-3 border border-slate-300 rounded-xl bg-white text-slate-900 font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                    />
+                    <p className="text-[10px] text-emerald-800 font-medium mt-1">
+                      💡 Enter room number directly, or create rooms in the <strong>Rooms</strong> tab.
+                    </p>
+                  </div>
+                ) : vacantRooms.length === 0 ? (
                   <div className="p-2 bg-rose-50 text-rose-700 border border-rose-200 rounded-lg text-[11px] font-bold">
-                    No vacant rooms available
+                    All registered rooms are currently full or in maintenance.
                   </div>
                 ) : (
                   <select
@@ -721,40 +737,106 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({
                     <span className="material-symbols-outlined text-[16px] text-emerald-700">badge</span>
                     <span className="text-[11px] font-bold text-slate-800">{idProofType} Document</span>
                   </div>
-                  {documentPhotoUrl && (
-                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded flex items-center gap-0.5">
-                      <span className="material-symbols-outlined text-[12px]">check</span> Drive Linked
-                    </span>
+                  {documentPhotoUrl ? (
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded flex items-center gap-0.5 border border-emerald-200">
+                        <span className="material-symbols-outlined text-[12px]">check</span> {documentPhotoUrl.startsWith('data:image') ? 'Photo Attached' : 'Drive Linked'}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setDocumentPhotoUrl('')}
+                        className="text-[10px] text-rose-600 hover:text-rose-800 font-bold"
+                        title="Remove attached document"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingLinkFor(editingLinkFor === 'id' ? null : 'id');
+                        setManualLinkInput(documentPhotoUrl);
+                      }}
+                      className="text-[10px] text-blue-700 hover:underline font-bold"
+                    >
+                      Paste Drive Link
+                    </button>
                   )}
                 </div>
 
-                {documentPhotoUrl ? (
-                  <div className="flex items-center justify-between text-[11px] text-slate-600">
+                {editingLinkFor === 'id' ? (
+                  <div className="flex flex-col gap-1 mt-1 bg-blue-50/70 p-2 rounded border border-blue-200">
+                    <label className="text-[10px] font-bold text-blue-900">Paste Google Drive / Document URL:</label>
+                    <input
+                      type="url"
+                      value={manualLinkInput}
+                      onChange={(e) => setManualLinkInput(e.target.value)}
+                      placeholder="https://drive.google.com/..."
+                      className="w-full text-[11px] px-2 py-1 bg-white border border-slate-300 rounded font-mono"
+                    />
+                    <div className="flex items-center justify-end gap-1.5 mt-0.5">
+                      <button
+                        type="button"
+                        onClick={() => setEditingLinkFor(null)}
+                        className="text-[10px] text-slate-500 hover:text-slate-700 font-semibold px-1.5 py-0.5"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDocumentPhotoUrl(manualLinkInput.trim());
+                          setEditingLinkFor(null);
+                        }}
+                        className="text-[10px] bg-blue-700 text-white font-bold px-2 py-0.5 rounded"
+                      >
+                        Save Link
+                      </button>
+                    </div>
+                  </div>
+                ) : documentPhotoUrl ? (
+                  <div className="flex items-center justify-between text-[11px] text-slate-600 gap-1">
                     <a
                       href={documentPhotoUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="text-blue-700 font-bold hover:underline truncate max-w-[140px]"
+                      className="text-blue-700 font-bold hover:underline truncate max-w-[130px]"
                     >
                       View on Google Drive
                     </a>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingLinkFor('id');
+                          setManualLinkInput(documentPhotoUrl);
+                        }}
+                        className="text-[10px] text-blue-700 hover:underline font-bold"
+                        title="Change Drive link"
+                      >
+                        Change Link
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setActiveScanner('id')}
+                        className="text-slate-500 hover:text-slate-800 font-semibold text-[10px]"
+                      >
+                        Re-scan
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5">
                     <button
                       type="button"
                       onClick={() => setActiveScanner('id')}
-                      className="text-slate-500 hover:text-slate-800 font-semibold"
+                      className="flex-1 h-[32px] bg-slate-100 hover:bg-emerald-50 hover:text-[#0a332c] text-slate-700 font-bold rounded-md flex items-center justify-center gap-1 text-[11px] transition-colors"
                     >
-                      Re-scan
+                      <span className="material-symbols-outlined text-[15px]">photo_camera</span>
+                      <span>Scan / Upload {idProofType}</span>
                     </button>
                   </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setActiveScanner('id')}
-                    className="w-full h-[32px] bg-slate-100 hover:bg-emerald-50 hover:text-[#0a332c] text-slate-700 font-bold rounded-md flex items-center justify-center gap-1 text-[11px] transition-colors"
-                  >
-                    <span className="material-symbols-outlined text-[15px]">photo_camera</span>
-                    <span>Scan / Upload {idProofType}</span>
-                  </button>
                 )}
               </div>
 
@@ -765,40 +847,106 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({
                     <span className="material-symbols-outlined text-[16px] text-indigo-700">description</span>
                     <span className="text-[11px] font-bold text-slate-800">T&C Agreement</span>
                   </div>
-                  {termsDocumentUrl && (
-                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded flex items-center gap-0.5">
-                      <span className="material-symbols-outlined text-[12px]">check</span> Drive Linked
-                    </span>
+                  {termsDocumentUrl ? (
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded flex items-center gap-0.5 border border-emerald-200">
+                        <span className="material-symbols-outlined text-[12px]">check</span> {termsDocumentUrl.startsWith('data:image') ? 'Photo Attached' : 'Drive Linked'}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setTermsDocumentUrl('')}
+                        className="text-[10px] text-rose-600 hover:text-rose-800 font-bold"
+                        title="Remove attached agreement"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingLinkFor(editingLinkFor === 'terms' ? null : 'terms');
+                        setManualLinkInput(termsDocumentUrl);
+                      }}
+                      className="text-[10px] text-indigo-700 hover:underline font-bold"
+                    >
+                      Paste Drive Link
+                    </button>
                   )}
                 </div>
 
-                {termsDocumentUrl ? (
-                  <div className="flex items-center justify-between text-[11px] text-slate-600">
+                {editingLinkFor === 'terms' ? (
+                  <div className="flex flex-col gap-1 mt-1 bg-indigo-50/70 p-2 rounded border border-indigo-200">
+                    <label className="text-[10px] font-bold text-indigo-900">Paste Google Drive / Document URL:</label>
+                    <input
+                      type="url"
+                      value={manualLinkInput}
+                      onChange={(e) => setManualLinkInput(e.target.value)}
+                      placeholder="https://drive.google.com/..."
+                      className="w-full text-[11px] px-2 py-1 bg-white border border-slate-300 rounded font-mono"
+                    />
+                    <div className="flex items-center justify-end gap-1.5 mt-0.5">
+                      <button
+                        type="button"
+                        onClick={() => setEditingLinkFor(null)}
+                        className="text-[10px] text-slate-500 hover:text-slate-700 font-semibold px-1.5 py-0.5"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setTermsDocumentUrl(manualLinkInput.trim());
+                          setEditingLinkFor(null);
+                        }}
+                        className="text-[10px] bg-indigo-700 text-white font-bold px-2 py-0.5 rounded"
+                      >
+                        Save Link
+                      </button>
+                    </div>
+                  </div>
+                ) : termsDocumentUrl ? (
+                  <div className="flex items-center justify-between text-[11px] text-slate-600 gap-1">
                     <a
                       href={termsDocumentUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="text-blue-700 font-bold hover:underline truncate max-w-[140px]"
+                      className="text-blue-700 font-bold hover:underline truncate max-w-[130px]"
                     >
                       View on Google Drive
                     </a>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingLinkFor('terms');
+                          setManualLinkInput(termsDocumentUrl);
+                        }}
+                        className="text-[10px] text-indigo-700 hover:underline font-bold"
+                        title="Change Drive link"
+                      >
+                        Change Link
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setActiveScanner('terms')}
+                        className="text-slate-500 hover:text-slate-800 font-semibold text-[10px]"
+                      >
+                        Re-scan
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5">
                     <button
                       type="button"
                       onClick={() => setActiveScanner('terms')}
-                      className="text-slate-500 hover:text-slate-800 font-semibold"
+                      className="flex-1 h-[32px] bg-slate-100 hover:bg-emerald-50 hover:text-[#0a332c] text-slate-700 font-bold rounded-md flex items-center justify-center gap-1 text-[11px] transition-colors"
                     >
-                      Re-scan
+                      <span className="material-symbols-outlined text-[15px]">photo_camera</span>
+                      <span>Scan / Upload T&C Document</span>
                     </button>
                   </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setActiveScanner('terms')}
-                    className="w-full h-[32px] bg-slate-100 hover:bg-emerald-50 hover:text-[#0a332c] text-slate-700 font-bold rounded-md flex items-center justify-center gap-1 text-[11px] transition-colors"
-                  >
-                    <span className="material-symbols-outlined text-[15px]">photo_camera</span>
-                    <span>Scan / Upload T&C Document</span>
-                  </button>
                 )}
               </div>
             </div>

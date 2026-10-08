@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { RentPayment, Expense, Income } from '../types';
 import { MONTHLY_TREND_DATA, PG_NAME, OWNER_PHONE_INTL, OWNER_UPI_ID } from '../data/initialData';
 import { AgamLogo } from './AgamLogo';
+import { getCurrentMonthYear, getMonthList } from '../utils/dateUtils';
 
 interface MoneyScreenProps {
   rentPayments?: RentPayment[];
@@ -25,12 +26,32 @@ export const MoneyScreen: React.FC<MoneyScreenProps> = ({
   onDeleteIncome,
 }) => {
   const [activeTab, setActiveTab] = useState<'balance-sheet' | 'income' | 'expenses'>('balance-sheet');
-  const [selectedMonthIndex, setSelectedMonthIndex] = useState(5); // 0=Mar .. 5=Aug 2026
   const [incomeCategoryFilter, setIncomeCategoryFilter] = useState<'all' | 'rent' | 'bulk' | 'deposit' | 'other'>('all');
   const [paymentSearch, setPaymentSearch] = useState('');
 
-  const months = ['Mar 2026', 'Apr 2026', 'May 2026', 'Jun 2026', 'Jul 2026', 'Aug 2026'];
-  const currentMonthName = months[selectedMonthIndex];
+  const currentActualMonth = getCurrentMonthYear();
+  const months = useMemo(() => {
+    const baseList = getMonthList(6, 1);
+    const existingMonths = new Set<string>();
+    rentPayments.forEach((p) => { if (p.month) existingMonths.add(p.month); });
+    expenses.forEach((e) => { if (e.monthYear) existingMonths.add(e.monthYear); });
+    incomes.forEach((i) => { if (i.monthYear) existingMonths.add(i.monthYear); });
+    
+    return Array.from(new Set([...baseList, ...existingMonths]));
+  }, [rentPayments, expenses, incomes]);
+
+  const defaultMonthIndex = useMemo(() => {
+    const idx = months.indexOf(currentActualMonth);
+    return idx !== -1 ? idx : Math.max(0, months.length - 2);
+  }, [months, currentActualMonth]);
+
+  const [selectedMonthIndex, setSelectedMonthIndex] = useState(defaultMonthIndex);
+
+  React.useEffect(() => {
+    setSelectedMonthIndex(defaultMonthIndex);
+  }, [defaultMonthIndex]);
+
+  const currentMonthName = months[selectedMonthIndex] || months[months.length - 1] || currentActualMonth;
   const monthShort = currentMonthName.split(' ')[0];
 
   const handlePrevMonth = () => {

@@ -3,6 +3,8 @@ import { MaintenanceTicket, StaffContact, StaffRole, Tenant, Room, RentPayment, 
 import { OWNER_PHONE, OWNER_PHONE_INTL, PG_NAME } from '../data/initialData';
 import { AddStaffModal } from './modals/AddStaffModal';
 import { GoogleWorkspaceHub } from './GoogleWorkspaceHub';
+import { AppsScriptSetupModal } from './modals/AppsScriptSetupModal';
+import { getSavedAppsScriptUrl } from '../lib/driveAppsScript';
 import {
   exportTenantsData,
   exportFinancialLedger,
@@ -56,6 +58,8 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
   const [selectedRoleFilter, setSelectedRoleFilter] = useState<string>('all');
   const [isStaffModalOpen, setIsStaffModalOpen] = useState(false);
   const [editingStaff, setEditingStaff] = useState<StaffContact | null>(null);
+  const [isAppsScriptModalOpen, setIsAppsScriptModalOpen] = useState(false);
+  const [appsScriptUrl, setAppsScriptUrl] = useState(getSavedAppsScriptUrl());
 
   // Maintenance form state
   const [showAddTicketModal, setShowAddTicketModal] = useState(false);
@@ -876,6 +880,61 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
             isSyncingCloudSql={isSyncingCloudSql}
           />
 
+          {/* Direct Google Apps Script Drive Uploader (Zero Login Required) */}
+          <div className="bg-white border border-emerald-200 rounded-2xl p-5 shadow-2xs flex flex-col gap-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center font-bold">
+                  <span className="material-symbols-outlined text-[24px]">add_photo_alternate</span>
+                </div>
+                <div>
+                  <h3 className="text-[15px] font-extrabold text-slate-900 leading-tight flex items-center gap-2">
+                    <span>Google Apps Script Drive Uploader</span>
+                    {appsScriptUrl ? (
+                      <span className="text-[11px] font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
+                        Connected
+                      </span>
+                    ) : (
+                      <span className="text-[11px] font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">
+                        Ready to Connect
+                      </span>
+                    )}
+                  </h3>
+                  <p className="text-[12px] text-slate-500 font-medium">
+                    Upload tenant ID proofs and contract photos directly to your personal Google Drive with 0 login errors.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsAppsScriptModalOpen(true)}
+                className="h-[38px] px-4 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-[12px] flex items-center gap-2 shadow-xs transition-colors shrink-0"
+              >
+                <span className="material-symbols-outlined text-[16px]">code</span>
+                <span>{appsScriptUrl ? 'Manage Script URL' : 'Setup Apps Script (Get Code)'}</span>
+              </button>
+            </div>
+
+            {appsScriptUrl && (
+              <div className="p-3 bg-emerald-50/70 border border-emerald-200 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-[12px]">
+                <div className="flex items-center gap-2 truncate max-w-full">
+                  <span className="material-symbols-outlined text-emerald-700 text-[18px] shrink-0">check_circle</span>
+                  <span className="text-emerald-950 font-medium truncate">
+                    Web App URL: <code className="font-mono bg-emerald-100/70 px-1 py-0.5 rounded text-[11px]">{appsScriptUrl}</code>
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsAppsScriptModalOpen(true)}
+                  className="text-emerald-800 font-bold underline shrink-0 hover:text-emerald-950"
+                >
+                  Change / Test
+                </button>
+              </div>
+            )}
+          </div>
+
           <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-2xs flex flex-col gap-5">
             <div>
               <div className="flex items-center gap-2">
@@ -1316,6 +1375,16 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
           }
           setIsStaffModalOpen(false);
           setEditingStaff(null);
+        }}
+      />
+
+      {/* Google Apps Script Drive Setup Modal */}
+      <AppsScriptSetupModal
+        isOpen={isAppsScriptModalOpen}
+        onClose={() => setIsAppsScriptModalOpen(false)}
+        onSaved={(url) => {
+          setAppsScriptUrl(url);
+          showCopyToast(url ? 'Google Apps Script Drive connected!' : 'Google Apps Script URL disconnected.');
         }}
       />
     </div>

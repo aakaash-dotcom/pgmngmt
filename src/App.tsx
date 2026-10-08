@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import {
   TabType,
   Room,
@@ -13,17 +13,14 @@ import {
   WhatsAppTemplate,
 } from './types';
 import {
-  INITIAL_ROOMS,
-  INITIAL_TENANTS,
-  INITIAL_RENT_PAYMENTS,
-  INITIAL_EXPENSES,
-  INITIAL_INCOMES,
-  INITIAL_MAINTENANCE_TICKETS,
-  INITIAL_NOTICES,
-  INITIAL_STAFF_CONTACTS,
-  INITIAL_BULK_GROUPS,
   INITIAL_WA_TEMPLATES,
 } from './data/initialData';
+import {
+  getTodayDateString,
+  getCurrentMonthYear,
+  formatMonthYearFromDateString,
+  getDueDateString,
+} from './utils/dateUtils';
 import {
   saveStateToCloud,
   saveStateToCloudImmediately,
@@ -31,6 +28,7 @@ import {
   fetchInitialCloudData,
   getDeviceId,
   AppSyncData,
+  mergeUniqueById,
 } from './lib/firebaseSync';
 
 import { TopAppBar } from './components/TopAppBar';
@@ -62,101 +60,98 @@ export default function App() {
   const [roomsFilter, setRoomsFilter] = useState<string | undefined>('all');
 
   // Check if demo data was already reset/cleared previously
-  const isResetDone = () => {
-    try {
-      return localStorage.getItem('agam_pg_demo_reset_done') === 'true';
-    } catch {
-      return false;
-    }
-  };
+  const isResetDone = () => true;
+  const [hasResetDemoData, setHasResetDemoData] = useState<boolean>(true);
 
-  const [hasResetDemoData, setHasResetDemoData] = useState<boolean>(isResetDone);
-
-  // Data State with LocalStorage - respects demo reset flag
+  // Data State with LocalStorage - clean defaults: 0 rooms, 0 tenants
   const [rooms, setRooms] = useState<Room[]>(() => {
-    if (isResetDone()) {
+    try {
       const saved = localStorage.getItem('agam_pg_rooms');
       return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
     }
-    const saved = localStorage.getItem('agam_pg_rooms');
-    return saved ? JSON.parse(saved) : INITIAL_ROOMS;
   });
 
   const [tenants, setTenants] = useState<Tenant[]>(() => {
-    if (isResetDone()) {
+    try {
       const saved = localStorage.getItem('agam_pg_tenants');
       return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
     }
-    const saved = localStorage.getItem('agam_pg_tenants');
-    return saved ? JSON.parse(saved) : INITIAL_TENANTS;
   });
 
   const [bulkGroups, setBulkGroups] = useState<BulkGroup[]>(() => {
-    if (isResetDone()) {
+    try {
       const saved = localStorage.getItem('agam_pg_bulk_groups');
       return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
     }
-    const saved = localStorage.getItem('agam_pg_bulk_groups');
-    return saved ? JSON.parse(saved) : INITIAL_BULK_GROUPS;
   });
 
   const [whatsAppTemplates, setWhatsAppTemplates] = useState<WhatsAppTemplate[]>(() => {
-    const saved = localStorage.getItem('agam_pg_wa_templates');
-    return saved ? JSON.parse(saved) : INITIAL_WA_TEMPLATES;
+    try {
+      const saved = localStorage.getItem('agam_pg_wa_templates');
+      return saved ? JSON.parse(saved) : INITIAL_WA_TEMPLATES;
+    } catch {
+      return INITIAL_WA_TEMPLATES;
+    }
   });
 
   const [rentPayments, setRentPayments] = useState<RentPayment[]>(() => {
-    if (isResetDone()) {
+    try {
       const saved = localStorage.getItem('agam_pg_payments');
       return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
     }
-    const saved = localStorage.getItem('agam_pg_payments');
-    return saved ? JSON.parse(saved) : INITIAL_RENT_PAYMENTS;
   });
 
   const [expenses, setExpenses] = useState<Expense[]>(() => {
-    if (isResetDone()) {
+    try {
       const saved = localStorage.getItem('agam_pg_expenses');
       return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
     }
-    const saved = localStorage.getItem('agam_pg_expenses');
-    return saved ? JSON.parse(saved) : INITIAL_EXPENSES;
   });
 
   const [incomes, setIncomes] = useState<Income[]>(() => {
-    if (isResetDone()) {
+    try {
       const saved = localStorage.getItem('agam_pg_incomes');
       return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
     }
-    const saved = localStorage.getItem('agam_pg_incomes');
-    return saved ? JSON.parse(saved) : INITIAL_INCOMES;
   });
 
   const [maintenanceTickets, setMaintenanceTickets] = useState<MaintenanceTicket[]>(() => {
-    if (isResetDone()) {
+    try {
       const saved = localStorage.getItem('agam_pg_tickets');
       return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
     }
-    const saved = localStorage.getItem('agam_pg_tickets');
-    return saved ? JSON.parse(saved) : INITIAL_MAINTENANCE_TICKETS;
   });
 
   const [staffContacts, setStaffContacts] = useState<StaffContact[]>(() => {
-    if (isResetDone()) {
+    try {
       const saved = localStorage.getItem('agam_pg_staff');
       return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
     }
-    const saved = localStorage.getItem('agam_pg_staff');
-    return saved ? JSON.parse(saved) : INITIAL_STAFF_CONTACTS;
   });
 
   const [notices, setNotices] = useState<Notice[]>(() => {
-    if (isResetDone()) {
+    try {
       const saved = localStorage.getItem('agam_pg_notices');
       return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
     }
-    const saved = localStorage.getItem('agam_pg_notices');
-    return saved ? JSON.parse(saved) : INITIAL_NOTICES;
   });
 
   // LocalStorage Synchronization
@@ -201,108 +196,255 @@ export default function App() {
   }, [notices]);
 
   // Flag to avoid uploading cloud data back when updating from remote
+  const isHydratedRef = useRef(false);
   const isApplyingRemoteSyncRef = useRef(false);
   const [cloudSyncStatus, setCloudSyncStatus] = useState<'synced' | 'syncing' | 'offline'>('synced');
   const [lastSyncTime, setLastSyncTime] = useState<string>('Just now');
 
-  // 1. Initial Load & Real-Time Subscription across multiple devices
+  // 1. Initial Load & Real-Time Reconciled Subscription
   useEffect(() => {
     let isMounted = true;
 
+    // Helper to strip any legacy mock/demo records so they never revive
+    const filterLegacy = <T extends { id?: string }>(arr: T[] = []): T[] => {
+      const legacyMockIds = new Set([
+        'staff-1', 'staff-2', 'staff-3', 'staff-4', 'staff-5',
+        'r-101', 'r-102', 'r-103', 'r-104',
+        't-1', 't-2', 't-3',
+        'exp-1', 'exp-2', 'exp-3',
+        'inc-1', 'inc-2',
+        'mt-1', 'mt-2',
+        'bg-1', 'bg-2'
+      ]);
+      return arr.filter((item) => item && item.id && !legacyMockIds.has(item.id));
+    };
+
     // Fetch initial data once on mount
     fetchInitialCloudData().then((cloudData) => {
-      if (!isMounted || !cloudData) return;
+      if (!isMounted) return;
 
-      const localResetDone = localStorage.getItem('agam_pg_demo_reset_done') === 'true';
+      const isCleanSlateDone = localStorage.getItem('agam_pg_v3_clean_slate') === 'true';
+      if (!isCleanSlateDone) {
+        // User explicitly asked for a completely new, clean app with 0 demo staff numbers, 0 rooms, 0 tenants
+        localStorage.setItem('agam_pg_v3_clean_slate', 'true');
+        localStorage.setItem('agam_pg_rooms', '[]');
+        localStorage.setItem('agam_pg_tenants', '[]');
+        localStorage.setItem('agam_pg_staff', '[]');
+        localStorage.setItem('agam_pg_payments', '[]');
+        localStorage.setItem('agam_pg_expenses', '[]');
+        localStorage.setItem('agam_pg_incomes', '[]');
+        localStorage.setItem('agam_pg_tickets', '[]');
+        localStorage.setItem('agam_pg_bulk_groups', '[]');
+        localStorage.setItem('agam_pg_notices', '[]');
+        localStorage.setItem('agam_pg_last_updated', new Date().toISOString());
 
-      // If either cloud or local has explicit demo reset recorded:
-      if (cloudData.isDemoReset || localResetDone) {
-        isApplyingRemoteSyncRef.current = true;
-        setHasResetDemoData(true);
-        localStorage.setItem('agam_pg_demo_reset_done', 'true');
+        setRooms([]);
+        setTenants([]);
+        setStaffContacts([]);
+        setRentPayments([]);
+        setExpenses([]);
+        setIncomes([]);
+        setMaintenanceTickets([]);
+        setBulkGroups([]);
+        setNotices([]);
 
-        if (!cloudData.isDemoReset && localResetDone) {
-          // Cloud had older unreset data, force override cloud with local clean state
-          saveStateToCloudImmediately({
-            rooms: JSON.parse(localStorage.getItem('agam_pg_rooms') || '[]'),
-            tenants: JSON.parse(localStorage.getItem('agam_pg_tenants') || '[]'),
-            payments: JSON.parse(localStorage.getItem('agam_pg_payments') || '[]'),
-            incomes: JSON.parse(localStorage.getItem('agam_pg_incomes') || '[]'),
-            expenses: JSON.parse(localStorage.getItem('agam_pg_expenses') || '[]'),
-            maintenanceTickets: JSON.parse(localStorage.getItem('agam_pg_tickets') || '[]'),
-            staffContacts: JSON.parse(localStorage.getItem('agam_pg_staff') || '[]'),
-            bulkGroups: JSON.parse(localStorage.getItem('agam_pg_bulk_groups') || '[]'),
-            notices: JSON.parse(localStorage.getItem('agam_pg_notices') || '[]'),
-            whatsappTemplates: INITIAL_WA_TEMPLATES,
-          });
-        } else {
-          // Cloud is reset, adopt clean state
-          setRooms(cloudData.rooms || []);
-          setTenants(cloudData.tenants || []);
-          setRentPayments(cloudData.payments || []);
-          setIncomes(cloudData.incomes || []);
-          setExpenses(cloudData.expenses || []);
-          setStaffContacts(cloudData.staffContacts || []);
-          setBulkGroups(cloudData.bulkGroups || []);
-          setMaintenanceTickets(cloudData.maintenanceTickets || []);
-          setNotices(cloudData.notices || []);
-          setWhatsAppTemplates(cloudData.whatsappTemplates || INITIAL_WA_TEMPLATES);
-        }
+        // Purge Firestore cloud database document so old demo staff/rooms are wiped for good
+        saveStateToCloudImmediately({
+          rooms: [],
+          tenants: [],
+          payments: [],
+          incomes: [],
+          expenses: [],
+          maintenanceTickets: [],
+          staffContacts: [],
+          bulkGroups: [],
+          notices: [],
+          whatsappTemplates: INITIAL_WA_TEMPLATES,
+        });
 
-        setTimeout(() => {
-          isApplyingRemoteSyncRef.current = false;
-        }, 800);
+        isHydratedRef.current = true;
         return;
       }
 
-      if (cloudData.rooms && Array.isArray(cloudData.rooms)) {
-        isApplyingRemoteSyncRef.current = true;
-        setRooms(cloudData.rooms);
-        if (cloudData.tenants) setTenants(cloudData.tenants);
-        if (cloudData.payments) setRentPayments(cloudData.payments);
-        if (cloudData.incomes) setIncomes(cloudData.incomes);
-        if (cloudData.expenses) setExpenses(cloudData.expenses);
-        if (cloudData.staffContacts) setStaffContacts(cloudData.staffContacts);
-        if (cloudData.bulkGroups) setBulkGroups(cloudData.bulkGroups);
-        if (cloudData.maintenanceTickets) setMaintenanceTickets(cloudData.maintenanceTickets);
-        if (cloudData.notices) setNotices(cloudData.notices);
-        if (cloudData.whatsappTemplates) setWhatsAppTemplates(cloudData.whatsappTemplates);
-        setTimeout(() => {
-          isApplyingRemoteSyncRef.current = false;
-        }, 800);
+      const localRoomsStr = localStorage.getItem('agam_pg_rooms');
+      const localRooms: Room[] = filterLegacy(localRoomsStr ? JSON.parse(localRoomsStr) : []);
+      const localTenantsStr = localStorage.getItem('agam_pg_tenants');
+      const localTenants: Tenant[] = filterLegacy(localTenantsStr ? JSON.parse(localTenantsStr) : []);
+      const localPaymentsStr = localStorage.getItem('agam_pg_payments');
+      const localPayments: RentPayment[] = filterLegacy(localPaymentsStr ? JSON.parse(localPaymentsStr) : []);
+      const localIncomesStr = localStorage.getItem('agam_pg_incomes');
+      const localIncomes: Income[] = filterLegacy(localIncomesStr ? JSON.parse(localIncomesStr) : []);
+      const localExpensesStr = localStorage.getItem('agam_pg_expenses');
+      const localExpenses: Expense[] = filterLegacy(localExpensesStr ? JSON.parse(localExpensesStr) : []);
+      const localTicketsStr = localStorage.getItem('agam_pg_tickets');
+      const localTickets: MaintenanceTicket[] = filterLegacy(localTicketsStr ? JSON.parse(localTicketsStr) : []);
+      const localStaffStr = localStorage.getItem('agam_pg_staff');
+      const localStaff: StaffContact[] = filterLegacy(localStaffStr ? JSON.parse(localStaffStr) : []);
+      const localGroupsStr = localStorage.getItem('agam_pg_bulk_groups');
+      const localGroups: BulkGroup[] = filterLegacy(localGroupsStr ? JSON.parse(localGroupsStr) : []);
+      const localNoticesStr = localStorage.getItem('agam_pg_notices');
+      const localNotices: Notice[] = filterLegacy(localNoticesStr ? JSON.parse(localNoticesStr) : []);
+      const localWaStr = localStorage.getItem('agam_pg_wa_templates');
+      const localWa: WhatsAppTemplate[] = localWaStr ? JSON.parse(localWaStr) : INITIAL_WA_TEMPLATES;
+
+      if (!cloudData) {
+        // First-ever run without existing cloud data: populate cloud with current local state
+        isHydratedRef.current = true;
+        saveStateToCloudImmediately({
+          rooms: localRooms,
+          tenants: localTenants,
+          payments: localPayments,
+          incomes: localIncomes,
+          expenses: localExpenses,
+          maintenanceTickets: localTickets,
+          staffContacts: localStaff,
+          bulkGroups: localGroups,
+          notices: localNotices,
+          whatsappTemplates: localWa,
+        });
+        return;
       }
+
+      // Reconcile and union all data so NOTHING is lost on refresh or across devices!
+      const reconciledRooms = mergeUniqueById(localRooms, filterLegacy(cloudData.rooms || []), 'id');
+      const reconciledTenants = mergeUniqueById(localTenants, filterLegacy(cloudData.tenants || []), 'id');
+      const reconciledPayments = mergeUniqueById(localPayments, filterLegacy(cloudData.payments || []), 'id');
+      const reconciledIncomes = mergeUniqueById(localIncomes, filterLegacy(cloudData.incomes || []), 'id');
+      const reconciledExpenses = mergeUniqueById(localExpenses, filterLegacy(cloudData.expenses || []), 'id');
+      const reconciledTickets = mergeUniqueById(localTickets, filterLegacy(cloudData.maintenanceTickets || []), 'id');
+      const reconciledStaff = mergeUniqueById(localStaff, filterLegacy(cloudData.staffContacts || []), 'id');
+      const reconciledGroups = mergeUniqueById(localGroups, filterLegacy(cloudData.bulkGroups || []), 'id');
+      const reconciledNotices = mergeUniqueById(localNotices, filterLegacy(cloudData.notices || []), 'id');
+      const reconciledWa = cloudData.whatsappTemplates?.length ? cloudData.whatsappTemplates : localWa;
+
+      isApplyingRemoteSyncRef.current = true;
+      setRooms(reconciledRooms);
+      setTenants(reconciledTenants);
+      setRentPayments(reconciledPayments);
+      setIncomes(reconciledIncomes);
+      setExpenses(reconciledExpenses);
+      setMaintenanceTickets(reconciledTickets);
+      setStaffContacts(reconciledStaff);
+      setBulkGroups(reconciledGroups);
+      setNotices(reconciledNotices);
+      setWhatsAppTemplates(reconciledWa);
+
+      // Immediately write back reconciled state to localStorage
+      try {
+        localStorage.setItem('agam_pg_rooms', JSON.stringify(reconciledRooms));
+        localStorage.setItem('agam_pg_tenants', JSON.stringify(reconciledTenants));
+        localStorage.setItem('agam_pg_payments', JSON.stringify(reconciledPayments));
+        localStorage.setItem('agam_pg_incomes', JSON.stringify(reconciledIncomes));
+        localStorage.setItem('agam_pg_expenses', JSON.stringify(reconciledExpenses));
+        localStorage.setItem('agam_pg_tickets', JSON.stringify(reconciledTickets));
+        localStorage.setItem('agam_pg_staff', JSON.stringify(reconciledStaff));
+        localStorage.setItem('agam_pg_bulk_groups', JSON.stringify(reconciledGroups));
+        localStorage.setItem('agam_pg_notices', JSON.stringify(reconciledNotices));
+        localStorage.setItem('agam_pg_wa_templates', JSON.stringify(reconciledWa));
+        localStorage.setItem('agam_pg_last_updated', new Date().toISOString());
+      } catch (e) {}
+
+      // Push reconciled master copy back to cloud immediately
+      saveStateToCloudImmediately({
+        rooms: reconciledRooms,
+        tenants: reconciledTenants,
+        payments: reconciledPayments,
+        incomes: reconciledIncomes,
+        expenses: reconciledExpenses,
+        maintenanceTickets: reconciledTickets,
+        staffContacts: reconciledStaff,
+        bulkGroups: reconciledGroups,
+        notices: reconciledNotices,
+        whatsappTemplates: reconciledWa,
+      });
+
+      isHydratedRef.current = true;
+      setTimeout(() => {
+        isApplyingRemoteSyncRef.current = false;
+      }, 500);
     });
 
     // Subscribe to multi-device real-time updates
     const unsubscribe = subscribeToCloudUpdates((remoteData) => {
       if (!isMounted || !remoteData) return;
       const currentDeviceId = getDeviceId();
-      // If the update originated from another phone/device, update live state
-      if (remoteData.updatedByDeviceId && remoteData.updatedByDeviceId !== currentDeviceId) {
-        console.log('⚡ Received live cloud update from another device!');
+      if (!remoteData.updatedByDeviceId || remoteData.updatedByDeviceId !== currentDeviceId || !isHydratedRef.current) {
+        console.log('⚡ Received live cloud update from Firestore!');
         isApplyingRemoteSyncRef.current = true;
 
-        if (remoteData.isDemoReset) {
-          setHasResetDemoData(true);
-          localStorage.setItem('agam_pg_demo_reset_done', 'true');
+        if (remoteData.rooms !== undefined) {
+          setRooms((prev) => {
+            const next = mergeUniqueById(prev, filterLegacy(remoteData.rooms), 'id');
+            try { localStorage.setItem('agam_pg_rooms', JSON.stringify(next)); } catch (e) {}
+            return next;
+          });
         }
-
-        if (remoteData.rooms !== undefined) setRooms(remoteData.rooms);
-        if (remoteData.tenants !== undefined) setTenants(remoteData.tenants);
-        if (remoteData.payments !== undefined) setRentPayments(remoteData.payments);
-        if (remoteData.incomes !== undefined) setIncomes(remoteData.incomes);
-        if (remoteData.expenses !== undefined) setExpenses(remoteData.expenses);
-        if (remoteData.staffContacts !== undefined) setStaffContacts(remoteData.staffContacts);
-        if (remoteData.bulkGroups !== undefined) setBulkGroups(remoteData.bulkGroups);
-        if (remoteData.maintenanceTickets !== undefined) setMaintenanceTickets(remoteData.maintenanceTickets);
-        if (remoteData.notices !== undefined) setNotices(remoteData.notices);
-        if (remoteData.whatsappTemplates !== undefined) setWhatsAppTemplates(remoteData.whatsappTemplates);
+        if (remoteData.tenants !== undefined) {
+          setTenants((prev) => {
+            const next = mergeUniqueById(prev, filterLegacy(remoteData.tenants), 'id');
+            try { localStorage.setItem('agam_pg_tenants', JSON.stringify(next)); } catch (e) {}
+            return next;
+          });
+        }
+        if (remoteData.payments !== undefined) {
+          setRentPayments((prev) => {
+            const next = mergeUniqueById(prev, filterLegacy(remoteData.payments), 'id');
+            try { localStorage.setItem('agam_pg_payments', JSON.stringify(next)); } catch (e) {}
+            return next;
+          });
+        }
+        if (remoteData.incomes !== undefined) {
+          setIncomes((prev) => {
+            const next = mergeUniqueById(prev, filterLegacy(remoteData.incomes), 'id');
+            try { localStorage.setItem('agam_pg_incomes', JSON.stringify(next)); } catch (e) {}
+            return next;
+          });
+        }
+        if (remoteData.expenses !== undefined) {
+          setExpenses((prev) => {
+            const next = mergeUniqueById(prev, filterLegacy(remoteData.expenses), 'id');
+            try { localStorage.setItem('agam_pg_expenses', JSON.stringify(next)); } catch (e) {}
+            return next;
+          });
+        }
+        if (remoteData.staffContacts !== undefined) {
+          setStaffContacts((prev) => {
+            const next = mergeUniqueById(prev, filterLegacy(remoteData.staffContacts), 'id');
+            try { localStorage.setItem('agam_pg_staff', JSON.stringify(next)); } catch (e) {}
+            return next;
+          });
+        }
+        if (remoteData.bulkGroups !== undefined) {
+          setBulkGroups((prev) => {
+            const next = mergeUniqueById(prev, filterLegacy(remoteData.bulkGroups), 'id');
+            try { localStorage.setItem('agam_pg_bulk_groups', JSON.stringify(next)); } catch (e) {}
+            return next;
+          });
+        }
+        if (remoteData.maintenanceTickets !== undefined) {
+          setMaintenanceTickets((prev) => {
+            const next = mergeUniqueById(prev, filterLegacy(remoteData.maintenanceTickets), 'id');
+            try { localStorage.setItem('agam_pg_tickets', JSON.stringify(next)); } catch (e) {}
+            return next;
+          });
+        }
+        if (remoteData.notices !== undefined) {
+          setNotices((prev) => {
+            const next = mergeUniqueById(prev, filterLegacy(remoteData.notices), 'id');
+            try { localStorage.setItem('agam_pg_notices', JSON.stringify(next)); } catch (e) {}
+            return next;
+          });
+        }
+        if (remoteData.whatsappTemplates !== undefined) {
+          setWhatsAppTemplates(remoteData.whatsappTemplates);
+          try { localStorage.setItem('agam_pg_wa_templates', JSON.stringify(remoteData.whatsappTemplates)); } catch (e) {}
+        }
 
         setCloudSyncStatus('synced');
         setLastSyncTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
         setTimeout(() => {
           isApplyingRemoteSyncRef.current = false;
-        }, 800);
+        }, 500);
       }
     });
 
@@ -314,7 +456,8 @@ export default function App() {
 
   // 2. Automatic Cloud Upload whenever local state updates
   useEffect(() => {
-    if (isApplyingRemoteSyncRef.current) return;
+    // Crucial: do NOT auto-save before hydration is complete or while remote updates are applying
+    if (!isHydratedRef.current || isApplyingRemoteSyncRef.current) return;
 
     setCloudSyncStatus('syncing');
     saveStateToCloud({
@@ -391,24 +534,72 @@ export default function App() {
 
   // WhatsApp Templates Management
   const handleSaveWhatsAppTemplate = (template: WhatsAppTemplate) => {
-    setWhatsAppTemplates((prev) => {
-      const exists = prev.some((t) => t.id === template.id);
-      if (exists) {
-        return prev.map((t) => (t.id === template.id ? template : t));
-      }
-      return [template, ...prev];
+    const exists = whatsAppTemplates.some((t) => t.id === template.id);
+    const updated = exists
+      ? whatsAppTemplates.map((t) => (t.id === template.id ? template : t))
+      : [template, ...whatsAppTemplates];
+    setWhatsAppTemplates(updated);
+    try {
+      localStorage.setItem('agam_pg_wa_templates', JSON.stringify(updated));
+      localStorage.setItem('agam_pg_last_updated', new Date().toISOString());
+    } catch (e) {}
+    saveStateToCloudImmediately({
+      rooms,
+      tenants,
+      payments: rentPayments,
+      incomes,
+      expenses,
+      maintenanceTickets,
+      staffContacts,
+      bulkGroups,
+      notices,
+      whatsappTemplates: updated,
     });
     showToast('WhatsApp template saved successfully!');
   };
 
   const handleDeleteWhatsAppTemplate = (id: string) => {
-    setWhatsAppTemplates((prev) => prev.filter((t) => t.id !== id));
+    const updated = whatsAppTemplates.filter((t) => t.id !== id);
+    setWhatsAppTemplates(updated);
+    try {
+      localStorage.setItem('agam_pg_wa_templates', JSON.stringify(updated));
+      localStorage.setItem('agam_pg_last_updated', new Date().toISOString());
+    } catch (e) {}
+    saveStateToCloudImmediately({
+      rooms,
+      tenants,
+      payments: rentPayments,
+      incomes,
+      expenses,
+      maintenanceTickets,
+      staffContacts,
+      bulkGroups,
+      notices,
+      whatsappTemplates: updated,
+    });
     showToast('WhatsApp template removed.');
   };
 
   // Bulk Groups Management
   const handleAddBulkGroup = (group: BulkGroup) => {
-    setBulkGroups((prev) => [group, ...prev]);
+    const updated = [group, ...bulkGroups];
+    setBulkGroups(updated);
+    try {
+      localStorage.setItem('agam_pg_bulk_groups', JSON.stringify(updated));
+      localStorage.setItem('agam_pg_last_updated', new Date().toISOString());
+    } catch (e) {}
+    saveStateToCloudImmediately({
+      rooms,
+      tenants,
+      payments: rentPayments,
+      incomes,
+      expenses,
+      maintenanceTickets,
+      staffContacts,
+      bulkGroups: updated,
+      notices,
+      whatsappTemplates: whatsAppTemplates,
+    });
     showToast(`Added corporate/bulk contract group: ${group.name}!`);
   };
 
@@ -423,30 +614,33 @@ export default function App() {
       isActive: true,
     }));
 
-    setTenants((prev) => [...newTenants, ...prev]);
+    const updatedTenants = [...newTenants, ...tenants];
 
     // Update Room Occupancy
-    setRooms((prevRooms) => {
-      const updatedRooms = [...prevRooms];
-      newTenants.forEach((nt) => {
-        const roomIndex = updatedRooms.findIndex((r) => Number(r.number) === Number(nt.roomNumber));
-        if (roomIndex !== -1) {
-          const r = updatedRooms[roomIndex];
-          const updatedOccupants = [...r.occupants, nt.name.split(' ')[0]];
-          const newOccupied = updatedOccupants.length;
-          const status = newOccupied >= r.capacity ? 'full' : newOccupied > 0 ? 'partial' : 'empty';
-          updatedRooms[roomIndex] = {
-            ...r,
-            occupied: newOccupied,
-            occupants: updatedOccupants,
-            status: r.status === 'maintenance' ? 'maintenance' : status,
-          };
-        }
-      });
-      return updatedRooms;
+    const updatedRooms = [...rooms];
+    newTenants.forEach((nt) => {
+      const roomIndex = updatedRooms.findIndex((r) => Number(r.number) === Number(nt.roomNumber));
+      if (roomIndex !== -1) {
+        const r = updatedRooms[roomIndex];
+        const updatedOccupants = [...r.occupants, nt.name.split(' ')[0]];
+        const newOccupied = updatedOccupants.length;
+        const status = newOccupied >= r.capacity ? 'full' : newOccupied > 0 ? 'partial' : 'empty';
+        updatedRooms[roomIndex] = {
+          ...r,
+          occupied: newOccupied,
+          occupants: updatedOccupants,
+          status: r.status === 'maintenance' ? 'maintenance' : status,
+        };
+      }
     });
 
     // Record Security Deposits Incomes
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonthShort = now.toLocaleDateString('en-IN', { month: 'short' });
+    const currentMonthYearStr = getCurrentMonthYear(now);
+    const todayStr = getTodayDateString();
+
     const depositIncomes: Income[] = newTenants
       .filter((t) => t.securityDeposit && t.securityDeposit > 0)
       .map((t, idx) => ({
@@ -454,16 +648,14 @@ export default function App() {
         title: `Advance Deposit - Room ${t.roomNumber} (${t.name})`,
         category: 'Security Deposit',
         amount: t.securityDeposit || 0,
-        date: t.checkInDate || '2026-08-14',
+        date: t.checkInDate || todayStr,
         receivedFrom: t.name,
         paymentMode: 'Cash',
-        monthYear: 'Aug 2026',
+        monthYear: formatMonthYearFromDateString(t.checkInDate || todayStr),
         notes: `Bulk contract check-in: ${t.groupName || ''}`,
       }));
 
-    if (depositIncomes.length > 0) {
-      setIncomes((prev) => [...depositIncomes, ...prev]);
-    }
+    const updatedIncomes = [...depositIncomes, ...incomes];
 
     // Create Rent Payment Records
     const newRentPayments: RentPayment[] = newTenants.map((t, idx) => ({
@@ -472,16 +664,45 @@ export default function App() {
       tenantName: t.name,
       roomNumber: t.roomNumber,
       amount: t.rentAmount,
-      month: 'Aug',
-      year: 2026,
-      dueDate: '05 AUG',
-      paidDate: '14 AUG',
+      month: currentMonthShort,
+      year: currentYear,
+      dueDate: getDueDateString(5),
+      paidDate: new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }).toUpperCase(),
       status: 'Paid',
       balance: 0,
       paymentMode: 'Bank Transfer',
       note: `Corporate billing: ${t.companyName || t.groupName}`,
     }));
-    setRentPayments((prev) => [...newRentPayments, ...prev]);
+    const updatedPayments = [...newRentPayments, ...rentPayments];
+
+    // Write all to localStorage synchronously
+    try {
+      localStorage.setItem('agam_pg_tenants', JSON.stringify(updatedTenants));
+      localStorage.setItem('agam_pg_rooms', JSON.stringify(updatedRooms));
+      localStorage.setItem('agam_pg_incomes', JSON.stringify(updatedIncomes));
+      localStorage.setItem('agam_pg_payments', JSON.stringify(updatedPayments));
+      localStorage.setItem('agam_pg_last_updated', new Date().toISOString());
+    } catch (e) {}
+
+    // Update React State
+    setTenants(updatedTenants);
+    setRooms(updatedRooms);
+    setIncomes(updatedIncomes);
+    setRentPayments(updatedPayments);
+
+    // Save to Cloud Firestore immediately
+    saveStateToCloudImmediately({
+      rooms: updatedRooms,
+      tenants: updatedTenants,
+      payments: updatedPayments,
+      incomes: updatedIncomes,
+      expenses,
+      maintenanceTickets,
+      staffContacts,
+      bulkGroups,
+      notices,
+      whatsappTemplates: whatsAppTemplates,
+    });
 
     showToast(`Successfully checked in ${newTenants.length} residents in bulk!`);
   };
@@ -494,19 +715,17 @@ export default function App() {
     paymentMode: 'UPI' | 'Bank Transfer' | 'Cash'
   ) => {
     // Mark all active tenants of this group as Paid
-    setTenants((prev) =>
-      prev.map((t) => {
-        if (t.isBulkContract && (t.groupName === groupName || t.companyName === companyName)) {
-          return {
-            ...t,
-            status: 'Paid',
-            balance: 0,
-            lastPaidDate: new Date().toISOString().split('T')[0],
-          };
-        }
-        return t;
-      })
-    );
+    const updatedTenants = tenants.map((t) => {
+      if (t.isBulkContract && (t.groupName === groupName || t.companyName === companyName)) {
+        return {
+          ...t,
+          status: 'Paid' as const,
+          balance: 0,
+          lastPaidDate: new Date().toISOString().split('T')[0],
+        };
+      }
+      return t;
+    });
 
     // Record a single corporate consolidated income
     const newIncome: Income = {
@@ -517,10 +736,32 @@ export default function App() {
       date: new Date().toISOString().split('T')[0],
       receivedFrom: companyName || groupName,
       paymentMode,
-      monthYear: 'Aug 2026',
+      monthYear: getCurrentMonthYear(),
       notes: `Consolidated month-end accommodation settlement for ${groupName}`,
     };
-    setIncomes((prev) => [newIncome, ...prev]);
+    const updatedIncomes = [newIncome, ...incomes];
+
+    setTenants(updatedTenants);
+    setIncomes(updatedIncomes);
+
+    try {
+      localStorage.setItem('agam_pg_tenants', JSON.stringify(updatedTenants));
+      localStorage.setItem('agam_pg_incomes', JSON.stringify(updatedIncomes));
+      localStorage.setItem('agam_pg_last_updated', new Date().toISOString());
+    } catch (e) {}
+
+    saveStateToCloudImmediately({
+      rooms,
+      tenants: updatedTenants,
+      payments: rentPayments,
+      incomes: updatedIncomes,
+      expenses,
+      maintenanceTickets,
+      staffContacts,
+      bulkGroups,
+      notices,
+      whatsappTemplates: whatsAppTemplates,
+    });
 
     showToast(`Settled ₹${amount.toLocaleString('en-IN')} corporate rent for ${companyName || groupName}!`);
   };
@@ -640,40 +881,45 @@ export default function App() {
       isActive: true,
     };
 
-    setTenants((prev) => [newTenant, ...prev]);
+    const updatedTenants = [newTenant, ...tenants];
 
     // Update Room Occupancy
-    setRooms((prevRooms) =>
-      prevRooms.map((r) => {
-        if (Number(r.number) === Number(newTenant.roomNumber)) {
-          const updatedOccupants = [...r.occupants, newTenant.name.split(' ')[0]];
-          const newOccupied = updatedOccupants.length;
-          const status = newOccupied >= r.capacity ? 'full' : newOccupied > 0 ? 'partial' : 'empty';
-          return {
-            ...r,
-            occupied: newOccupied,
-            occupants: updatedOccupants,
-            status: r.status === 'maintenance' ? 'maintenance' : status,
-          };
-        }
-        return r;
-      })
-    );
+    const updatedRooms = rooms.map((r) => {
+      if (Number(r.number) === Number(newTenant.roomNumber)) {
+        const updatedOccupants = [...r.occupants, newTenant.name.split(' ')[0]];
+        const newOccupied = updatedOccupants.length;
+        const status = newOccupied >= r.capacity ? 'full' : newOccupied > 0 ? 'partial' : 'empty';
+        return {
+          ...r,
+          occupied: newOccupied,
+          occupants: updatedOccupants,
+          status: r.status === 'maintenance' ? 'maintenance' : status,
+        };
+      }
+      return r;
+    });
 
     // Record Security Deposit or Rent Income
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonthShort = now.toLocaleDateString('en-IN', { month: 'short' });
+    const currentMonthYearStr = getCurrentMonthYear(now);
+    const todayStr = getTodayDateString();
+
+    let updatedIncomes = incomes;
     if (newTenant.securityDeposit && newTenant.securityDeposit > 0) {
       const depositIncome: Income = {
         id: `inc-${Date.now()}`,
         title: `Security Deposit - Room ${newTenant.roomNumber} (${newTenant.name})`,
         category: 'Security Deposit',
         amount: newTenant.securityDeposit,
-        date: newTenant.checkInDate || '2026-08-14',
+        date: newTenant.checkInDate || todayStr,
         receivedFrom: newTenant.name,
         paymentMode: 'UPI',
-        monthYear: 'Aug 2026',
+        monthYear: formatMonthYearFromDateString(newTenant.checkInDate || todayStr),
         notes: newTenant.isBulkContract ? `Bulk contract: ${newTenant.groupName}` : undefined,
       };
-      setIncomes((prev) => [depositIncome, ...prev]);
+      updatedIncomes = [depositIncome, ...incomes];
     }
 
     // Create Initial Payment Record
@@ -683,16 +929,45 @@ export default function App() {
       tenantName: newTenant.name,
       roomNumber: newTenant.roomNumber,
       amount: newTenant.rentAmount,
-      month: 'Aug',
-      year: 2026,
-      dueDate: '05 AUG',
-      paidDate: newTenant.status === 'Paid' ? '14 AUG' : undefined,
+      month: currentMonthShort,
+      year: currentYear,
+      dueDate: getDueDateString(5),
+      paidDate: newTenant.status === 'Paid' ? new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }).toUpperCase() : undefined,
       status: newTenant.status,
       balance: newTenant.balance || 0,
       paymentMode: 'UPI',
       note: newTenant.isBulkContract ? `Corporate contract: ${newTenant.companyName}` : undefined,
     };
-    setRentPayments((prev) => [newPayment, ...prev]);
+    const updatedPayments = [newPayment, ...rentPayments];
+
+    // Synchronously write all to localStorage
+    try {
+      localStorage.setItem('agam_pg_tenants', JSON.stringify(updatedTenants));
+      localStorage.setItem('agam_pg_rooms', JSON.stringify(updatedRooms));
+      localStorage.setItem('agam_pg_incomes', JSON.stringify(updatedIncomes));
+      localStorage.setItem('agam_pg_payments', JSON.stringify(updatedPayments));
+      localStorage.setItem('agam_pg_last_updated', new Date().toISOString());
+    } catch (e) {}
+
+    // Update React State
+    setTenants(updatedTenants);
+    setRooms(updatedRooms);
+    setIncomes(updatedIncomes);
+    setRentPayments(updatedPayments);
+
+    // Save directly to Firestore cloud immediately
+    saveStateToCloudImmediately({
+      rooms: updatedRooms,
+      tenants: updatedTenants,
+      payments: updatedPayments,
+      incomes: updatedIncomes,
+      expenses,
+      maintenanceTickets,
+      staffContacts,
+      bulkGroups,
+      notices,
+      whatsappTemplates: whatsAppTemplates,
+    });
 
     showToast(`Admitted ${newTenant.name} to Room ${newTenant.roomNumber} (${newTenant.bedNumber || 'B1'})!`);
   };
@@ -709,21 +984,25 @@ export default function App() {
     if (!tenant) return;
 
     // Update Tenant Status
-    setTenants((prev) =>
-      prev.map((t) => {
-        if (t.id === details.tenantId) {
-          const newBal = Math.max(0, (t.balance || t.rentAmount) - details.amountPaid);
-          const newStatus = newBal === 0 ? 'Paid' : 'Partial';
-          return {
-            ...t,
-            status: newStatus,
-            balance: newBal,
-            lastPaidDate: new Date().toISOString().split('T')[0],
-          };
-        }
-        return t;
-      })
-    );
+    const updatedTenants = tenants.map((t) => {
+      if (t.id === details.tenantId) {
+        const newBal = Math.max(0, (t.balance || t.rentAmount) - details.amountPaid);
+        const newStatus = newBal === 0 ? 'Paid' : 'Partial';
+        return {
+          ...t,
+          status: newStatus as any,
+          balance: newBal,
+          lastPaidDate: new Date().toISOString().split('T')[0],
+        };
+      }
+      return t;
+    });
+
+    const paymentDate = new Date();
+    const paidDateFormatted = paymentDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }).toUpperCase();
+    const payMonthParts = (details.month || '').split(' ');
+    const payMonthShort = payMonthParts[0] || paymentDate.toLocaleDateString('en-IN', { month: 'short' });
+    const payYear = payMonthParts[1] ? Number(payMonthParts[1]) : paymentDate.getFullYear();
 
     // Update or Create RentPayment Record
     const updatedPayment: RentPayment = {
@@ -732,20 +1011,20 @@ export default function App() {
       tenantName: tenant.name,
       roomNumber: tenant.roomNumber,
       amount: details.amountPaid,
-      month: details.month.split(' ')[0] || 'Aug',
-      year: 2026,
-      dueDate: '05 AUG',
-      paidDate: '14 AUG',
+      month: payMonthShort,
+      year: payYear,
+      dueDate: getDueDateString(5),
+      paidDate: paidDateFormatted,
       status: 'Paid',
       balance: 0,
       paymentMode: details.paymentMode,
       note: details.receiptNote,
     };
 
-    setRentPayments((prev) => [
+    const updatedPayments = [
       updatedPayment,
-      ...prev.filter((p) => p.tenantName !== tenant.name),
-    ]);
+      ...rentPayments.filter((p) => p.tenantName !== tenant.name),
+    ];
 
     // Also add to Incomes ledger for automated balance sheet
     const newIncome: Income = {
@@ -753,13 +1032,37 @@ export default function App() {
       title: `Room Rent - Room ${tenant.roomNumber} (${tenant.name})`,
       category: tenant.isBulkContract ? 'Bulk Company Rent' : 'Monthly Rent',
       amount: details.amountPaid,
-      date: '2026-08-14',
+      date: getTodayDateString(),
       receivedFrom: tenant.name,
       paymentMode: details.paymentMode === 'Cheque' ? 'Bank Transfer' : details.paymentMode,
-      monthYear: 'Aug 2026',
+      monthYear: details.month || getCurrentMonthYear(),
       notes: details.receiptNote,
     };
-    setIncomes((prev) => [newIncome, ...prev]);
+    const updatedIncomes = [newIncome, ...incomes];
+
+    try {
+      localStorage.setItem('agam_pg_tenants', JSON.stringify(updatedTenants));
+      localStorage.setItem('agam_pg_payments', JSON.stringify(updatedPayments));
+      localStorage.setItem('agam_pg_incomes', JSON.stringify(updatedIncomes));
+      localStorage.setItem('agam_pg_last_updated', new Date().toISOString());
+    } catch (e) {}
+
+    setTenants(updatedTenants);
+    setRentPayments(updatedPayments);
+    setIncomes(updatedIncomes);
+
+    saveStateToCloudImmediately({
+      rooms,
+      tenants: updatedTenants,
+      payments: updatedPayments,
+      incomes: updatedIncomes,
+      expenses,
+      maintenanceTickets,
+      staffContacts,
+      bulkGroups,
+      notices,
+      whatsappTemplates: whatsAppTemplates,
+    });
 
     showToast(`Collected ₹${details.amountPaid.toLocaleString('en-IN')} from ${tenant.name}!`);
   };
@@ -771,52 +1074,109 @@ export default function App() {
 
     const willBeActive = !target.isActive;
 
-    setTenants((prev) =>
-      prev.map((t) => {
-        if (t.id === tenantId) {
-          return {
-            ...t,
-            isActive: willBeActive,
-            checkOutDate: willBeActive ? undefined : new Date().toISOString().split('T')[0],
-          };
-        }
-        return t;
-      })
-    );
+    const updatedTenants = tenants.map((t) => {
+      if (t.id === tenantId) {
+        return {
+          ...t,
+          isActive: willBeActive,
+          checkOutDate: willBeActive ? undefined : new Date().toISOString().split('T')[0],
+        };
+      }
+      return t;
+    });
 
     // Free or fill bed in room
-    setRooms((prevRooms) =>
-      prevRooms.map((r) => {
-        if (Number(r.number) === Number(target.roomNumber)) {
-          let updatedOccupants = r.occupants;
-          if (!willBeActive) {
-            const firstName = target.name.split(' ')[0];
-            updatedOccupants = r.occupants.filter((occ) => occ.toLowerCase() !== firstName.toLowerCase());
-          } else {
-            updatedOccupants = [...r.occupants, target.name.split(' ')[0]];
-          }
-          const newOccupied = updatedOccupants.length;
-          const status = newOccupied >= r.capacity ? 'full' : newOccupied > 0 ? 'partial' : 'empty';
-          return {
-            ...r,
-            occupied: newOccupied,
-            occupants: updatedOccupants,
-            status: r.status === 'maintenance' ? 'maintenance' : status,
-          };
+    const updatedRooms = rooms.map((r) => {
+      if (Number(r.number) === Number(target.roomNumber)) {
+        let updatedOccupants = r.occupants;
+        if (!willBeActive) {
+          const firstName = target.name.split(' ')[0];
+          updatedOccupants = r.occupants.filter((occ) => occ.toLowerCase() !== firstName.toLowerCase());
+        } else {
+          updatedOccupants = [...r.occupants, target.name.split(' ')[0]];
         }
-        return r;
-      })
-    );
+        const newOccupied = updatedOccupants.length;
+        const status = newOccupied >= r.capacity ? 'full' : newOccupied > 0 ? 'partial' : 'empty';
+        return {
+          ...r,
+          occupied: newOccupied,
+          occupants: updatedOccupants,
+          status: r.status === 'maintenance' ? 'maintenance' : status,
+        };
+      }
+      return r;
+    });
+
+    try {
+      localStorage.setItem('agam_pg_tenants', JSON.stringify(updatedTenants));
+      localStorage.setItem('agam_pg_rooms', JSON.stringify(updatedRooms));
+      localStorage.setItem('agam_pg_last_updated', new Date().toISOString());
+    } catch (e) {}
+
+    setTenants(updatedTenants);
+    setRooms(updatedRooms);
+
+    saveStateToCloudImmediately({
+      rooms: updatedRooms,
+      tenants: updatedTenants,
+      payments: rentPayments,
+      incomes,
+      expenses,
+      maintenanceTickets,
+      staffContacts,
+      bulkGroups,
+      notices,
+      whatsappTemplates: whatsAppTemplates,
+    });
 
     showToast(willBeActive ? `Reactivated resident ${target.name}` : `${target.name} checked out (vacated).`);
   };
 
   // Update Tenant Notes
   const handleUpdateTenantNotes = (tenantId: string, notes: string) => {
-    setTenants((prev) =>
-      prev.map((t) => (t.id === tenantId ? { ...t, notes } : t))
-    );
+    const updatedTenants = tenants.map((t) => (t.id === tenantId ? { ...t, notes } : t));
+    try {
+      localStorage.setItem('agam_pg_tenants', JSON.stringify(updatedTenants));
+      localStorage.setItem('agam_pg_last_updated', new Date().toISOString());
+    } catch (e) {}
+    setTenants(updatedTenants);
+    saveStateToCloudImmediately({
+      rooms,
+      tenants: updatedTenants,
+      payments: rentPayments,
+      incomes,
+      expenses,
+      maintenanceTickets,
+      staffContacts,
+      bulkGroups,
+      notices,
+      whatsappTemplates: whatsAppTemplates,
+    });
     showToast('Resident remarks updated.');
+  };
+
+  // Update Full Tenant (e.g. Google Drive documents & links)
+  const handleUpdateTenant = (updatedTenant: Tenant) => {
+    const updatedTenants = tenants.map((t) => (t.id === updatedTenant.id ? updatedTenant : t));
+    try {
+      localStorage.setItem('agam_pg_tenants', JSON.stringify(updatedTenants));
+      localStorage.setItem('agam_pg_last_updated', new Date().toISOString());
+    } catch (e) {}
+    setTenants(updatedTenants);
+    setSelectedTenant(updatedTenant);
+    saveStateToCloudImmediately({
+      rooms,
+      tenants: updatedTenants,
+      payments: rentPayments,
+      incomes,
+      expenses,
+      maintenanceTickets,
+      staffContacts,
+      bulkGroups,
+      notices,
+      whatsappTemplates: whatsAppTemplates,
+    });
+    showToast(`Saved Google Drive document links for ${updatedTenant.name}.`);
   };
 
   // Toggle Room Maintenance
@@ -825,24 +1185,40 @@ export default function App() {
     isMaintenance: boolean,
     reason?: string
   ) => {
-    setRooms((prev) =>
-      prev.map((r) => {
-        if (r.id === roomId) {
-          return {
-            ...r,
-            status: isMaintenance
-              ? 'maintenance'
-              : r.occupied >= r.capacity
-              ? 'full'
-              : r.occupied > 0
-              ? 'partial'
-              : 'empty',
-            maintenanceReason: isMaintenance ? reason || 'Under Maintenance' : undefined,
-          };
-        }
-        return r;
-      })
-    );
+    const updatedRooms = rooms.map((r) => {
+      if (r.id === roomId) {
+        return {
+          ...r,
+          status: isMaintenance
+            ? 'maintenance'
+            : r.occupied >= r.capacity
+            ? 'full'
+            : r.occupied > 0
+            ? 'partial'
+            : 'empty',
+          maintenanceReason: isMaintenance ? reason || 'Under Maintenance' : undefined,
+        };
+      }
+      return r;
+    });
+
+    try {
+      localStorage.setItem('agam_pg_rooms', JSON.stringify(updatedRooms));
+      localStorage.setItem('agam_pg_last_updated', new Date().toISOString());
+    } catch (e) {}
+    setRooms(updatedRooms);
+    saveStateToCloudImmediately({
+      rooms: updatedRooms,
+      tenants,
+      payments: rentPayments,
+      incomes,
+      expenses,
+      maintenanceTickets,
+      staffContacts,
+      bulkGroups,
+      notices,
+      whatsappTemplates: whatsAppTemplates,
+    });
     showToast(isMaintenance ? 'Room marked under maintenance' : 'Room restored to operational');
   };
 
@@ -855,31 +1231,65 @@ export default function App() {
       occupants: [],
       status: 'empty',
     };
-    setRooms((prev) => [...prev, newRoom]);
+    const updatedRooms = [...rooms, newRoom];
+    try {
+      localStorage.setItem('agam_pg_rooms', JSON.stringify(updatedRooms));
+      localStorage.setItem('agam_pg_last_updated', new Date().toISOString());
+    } catch (e) {}
+    setRooms(updatedRooms);
+    saveStateToCloudImmediately({
+      rooms: updatedRooms,
+      tenants,
+      payments: rentPayments,
+      incomes,
+      expenses,
+      maintenanceTickets,
+      staffContacts,
+      bulkGroups,
+      notices,
+      whatsappTemplates: whatsAppTemplates,
+    });
     showToast(`Added Room ${newRoom.number} (${newRoom.capacity} beds @ ₹${newRoom.perBedRent?.toLocaleString('en-IN')}/bed)!`);
   };
 
   // Edit Room Handler (Price & Capacity up to 10 sharing)
   const handleUpdateRoom = (roomId: string, updatedFields: Partial<Room>) => {
-    setRooms((prev) =>
-      prev.map((r) => {
-        if (r.id === roomId) {
-          const newCapacity = updatedFields.capacity !== undefined ? updatedFields.capacity : r.capacity;
-          const status = r.occupied >= newCapacity ? 'full' : r.occupied > 0 ? 'partial' : 'empty';
-          return {
-            ...r,
-            ...updatedFields,
-            status: r.status === 'maintenance' ? 'maintenance' : status,
-          };
-        }
-        return r;
-      })
-    );
+    const updatedRooms = rooms.map((r) => {
+      if (r.id === roomId) {
+        const newCapacity = updatedFields.capacity !== undefined ? updatedFields.capacity : r.capacity;
+        const status = r.occupied >= newCapacity ? 'full' : r.occupied > 0 ? 'partial' : 'empty';
+        return {
+          ...r,
+          ...updatedFields,
+          status: r.status === 'maintenance' ? 'maintenance' : status,
+        };
+      }
+      return r;
+    });
+
+    try {
+      localStorage.setItem('agam_pg_rooms', JSON.stringify(updatedRooms));
+      localStorage.setItem('agam_pg_last_updated', new Date().toISOString());
+    } catch (e) {}
+    setRooms(updatedRooms);
 
     // If selected room is currently open in detail modal, update that too
     if (selectedRoom && selectedRoom.id === roomId) {
       setSelectedRoom((prev) => (prev ? { ...prev, ...updatedFields } : null));
     }
+
+    saveStateToCloudImmediately({
+      rooms: updatedRooms,
+      tenants,
+      payments: rentPayments,
+      incomes,
+      expenses,
+      maintenanceTickets,
+      staffContacts,
+      bulkGroups,
+      notices,
+      whatsappTemplates: whatsAppTemplates,
+    });
 
     showToast('Room price & sharing capacity updated successfully!');
   };
@@ -887,11 +1297,28 @@ export default function App() {
   // Delete Room Handler
   const handleDeleteRoom = (roomId: string) => {
     const targetRoom = rooms.find((r) => r.id === roomId);
-    setRooms((prev) => prev.filter((r) => r.id !== roomId));
+    const updatedRooms = rooms.filter((r) => r.id !== roomId);
+    try {
+      localStorage.setItem('agam_pg_rooms', JSON.stringify(updatedRooms));
+      localStorage.setItem('agam_pg_last_updated', new Date().toISOString());
+    } catch (e) {}
+    setRooms(updatedRooms);
     if (selectedRoom?.id === roomId) {
       setSelectedRoom(null);
       setIsRoomDetailOpen(false);
     }
+    saveStateToCloudImmediately({
+      rooms: updatedRooms,
+      tenants,
+      payments: rentPayments,
+      incomes,
+      expenses,
+      maintenanceTickets,
+      staffContacts,
+      bulkGroups,
+      notices,
+      whatsappTemplates: whatsAppTemplates,
+    });
     showToast(`Removed Room ${targetRoom?.number || ''} from PG.`);
   };
 
@@ -901,13 +1328,47 @@ export default function App() {
       ...newExpData,
       id: `exp-${Date.now()}`,
     };
-    setExpenses((prev) => [newExpense, ...prev]);
+    const updatedExpenses = [newExpense, ...expenses];
+    try {
+      localStorage.setItem('agam_pg_expenses', JSON.stringify(updatedExpenses));
+      localStorage.setItem('agam_pg_last_updated', new Date().toISOString());
+    } catch (e) {}
+    setExpenses(updatedExpenses);
+    saveStateToCloudImmediately({
+      rooms,
+      tenants,
+      payments: rentPayments,
+      incomes,
+      expenses: updatedExpenses,
+      maintenanceTickets,
+      staffContacts,
+      bulkGroups,
+      notices,
+      whatsappTemplates: whatsAppTemplates,
+    });
     showToast(`Logged expense ₹${newExpense.amount.toLocaleString('en-IN')} for ${newExpense.category}!`);
   };
 
   // Delete Expense Handler
   const handleDeleteExpense = (id: string) => {
-    setExpenses((prev) => prev.filter((e) => e.id !== id));
+    const updatedExpenses = expenses.filter((e) => e.id !== id);
+    try {
+      localStorage.setItem('agam_pg_expenses', JSON.stringify(updatedExpenses));
+      localStorage.setItem('agam_pg_last_updated', new Date().toISOString());
+    } catch (e) {}
+    setExpenses(updatedExpenses);
+    saveStateToCloudImmediately({
+      rooms,
+      tenants,
+      payments: rentPayments,
+      incomes,
+      expenses: updatedExpenses,
+      maintenanceTickets,
+      staffContacts,
+      bulkGroups,
+      notices,
+      whatsappTemplates: whatsAppTemplates,
+    });
     showToast('Expense entry removed.');
   };
 
@@ -917,71 +1378,196 @@ export default function App() {
       ...newIncData,
       id: `inc-${Date.now()}`,
     };
-    setIncomes((prev) => [newIncome, ...prev]);
+    const updatedIncomes = [newIncome, ...incomes];
+    try {
+      localStorage.setItem('agam_pg_incomes', JSON.stringify(updatedIncomes));
+      localStorage.setItem('agam_pg_last_updated', new Date().toISOString());
+    } catch (e) {}
+    setIncomes(updatedIncomes);
+    saveStateToCloudImmediately({
+      rooms,
+      tenants,
+      payments: rentPayments,
+      incomes: updatedIncomes,
+      expenses,
+      maintenanceTickets,
+      staffContacts,
+      bulkGroups,
+      notices,
+      whatsappTemplates: whatsAppTemplates,
+    });
     showToast(`Recorded income of ₹${newIncome.amount.toLocaleString('en-IN')}!`);
   };
 
   // Delete Income Handler
   const handleDeleteIncome = (id: string) => {
-    setIncomes((prev) => prev.filter((i) => i.id !== id));
+    const updatedIncomes = incomes.filter((i) => i.id !== id);
+    try {
+      localStorage.setItem('agam_pg_incomes', JSON.stringify(updatedIncomes));
+      localStorage.setItem('agam_pg_last_updated', new Date().toISOString());
+    } catch (e) {}
+    setIncomes(updatedIncomes);
+    saveStateToCloudImmediately({
+      rooms,
+      tenants,
+      payments: rentPayments,
+      incomes: updatedIncomes,
+      expenses,
+      maintenanceTickets,
+      staffContacts,
+      bulkGroups,
+      notices,
+      whatsappTemplates: whatsAppTemplates,
+    });
     showToast('Income entry removed.');
   };
 
   // Add Maintenance Ticket
   const handleAddTicket = (ticket: MaintenanceTicket) => {
-    setMaintenanceTickets((prev) => [ticket, ...prev]);
+    const updated = [ticket, ...maintenanceTickets];
+    setMaintenanceTickets(updated);
+    try {
+      localStorage.setItem('agam_pg_tickets', JSON.stringify(updated));
+      localStorage.setItem('agam_pg_last_updated', new Date().toISOString());
+    } catch (e) {}
+    saveStateToCloudImmediately({
+      rooms,
+      tenants,
+      payments: rentPayments,
+      incomes,
+      expenses,
+      maintenanceTickets: updated,
+      staffContacts,
+      bulkGroups,
+      notices,
+      whatsappTemplates: whatsAppTemplates,
+    });
     showToast(`Logged repair ticket for Room ${ticket.roomNumber}!`);
+  };
+
+  const handleUpdateTicketStatus = (id: string, status: 'pending' | 'in-progress' | 'resolved') => {
+    const updated = maintenanceTickets.map((t) => (t.id === id ? { ...t, status } : t));
+    setMaintenanceTickets(updated);
+    try {
+      localStorage.setItem('agam_pg_tickets', JSON.stringify(updated));
+      localStorage.setItem('agam_pg_last_updated', new Date().toISOString());
+    } catch (e) {}
+    saveStateToCloudImmediately({
+      rooms,
+      tenants,
+      payments: rentPayments,
+      incomes,
+      expenses,
+      maintenanceTickets: updated,
+      staffContacts,
+      bulkGroups,
+      notices,
+      whatsappTemplates: whatsAppTemplates,
+    });
+    showToast(`Repair ticket marked as ${status}!`);
   };
 
   // Staff Handlers
   const handleAddStaff = (staffData: Omit<StaffContact, 'id'>, editId?: string) => {
+    let updatedStaff: StaffContact[];
     if (editId) {
-      setStaffContacts((prev) =>
-        prev.map((s) => (s.id === editId ? { ...staffData, id: editId } : s))
-      );
+      updatedStaff = staffContacts.map((s) => (s.id === editId ? { ...staffData, id: editId } : s));
       showToast(`Updated contact for ${staffData.name}!`);
     } else {
       const newStaff: StaffContact = {
         ...staffData,
         id: `staff-${Date.now()}`,
       };
-      setStaffContacts((prev) => [newStaff, ...prev]);
+      updatedStaff = [newStaff, ...staffContacts];
       showToast(`Added ${staffData.name} (${staffData.role}) to phone book!`);
     }
+    setStaffContacts(updatedStaff);
+    try {
+      localStorage.setItem('agam_pg_staff', JSON.stringify(updatedStaff));
+      localStorage.setItem('agam_pg_last_updated', new Date().toISOString());
+    } catch (e) {}
+    saveStateToCloudImmediately({
+      rooms,
+      tenants,
+      payments: rentPayments,
+      incomes,
+      expenses,
+      maintenanceTickets,
+      staffContacts: updatedStaff,
+      bulkGroups,
+      notices,
+      whatsappTemplates: whatsAppTemplates,
+    });
   };
 
   const handleDeleteStaff = (id: string) => {
-    setStaffContacts((prev) => prev.filter((s) => s.id !== id));
+    const updatedStaff = staffContacts.filter((s) => s.id !== id);
+    setStaffContacts(updatedStaff);
+    try {
+      localStorage.setItem('agam_pg_staff', JSON.stringify(updatedStaff));
+      localStorage.setItem('agam_pg_last_updated', new Date().toISOString());
+    } catch (e) {}
+    saveStateToCloudImmediately({
+      rooms,
+      tenants,
+      payments: rentPayments,
+      incomes,
+      expenses,
+      maintenanceTickets,
+      staffContacts: updatedStaff,
+      bulkGroups,
+      notices,
+      whatsappTemplates: whatsAppTemplates,
+    });
     showToast('Contact removed from phone book.');
   };
 
   // Restore Full PG Backup Handler
   const handleRestoreBackup = (backupData: any) => {
     if (!backupData) return;
-    if (backupData.rooms && Array.isArray(backupData.rooms)) {
-      setRooms(backupData.rooms);
-    }
-    if (backupData.tenants && Array.isArray(backupData.tenants)) {
-      setTenants(backupData.tenants);
-    }
-    if (backupData.bulkGroups && Array.isArray(backupData.bulkGroups)) {
-      setBulkGroups(backupData.bulkGroups);
-    }
-    if (backupData.rentPayments && Array.isArray(backupData.rentPayments)) {
-      setRentPayments(backupData.rentPayments);
-    }
-    if (backupData.expenses && Array.isArray(backupData.expenses)) {
-      setExpenses(backupData.expenses);
-    }
-    if (backupData.incomes && Array.isArray(backupData.incomes)) {
-      setIncomes(backupData.incomes);
-    }
-    if (backupData.staffContacts && Array.isArray(backupData.staffContacts)) {
-      setStaffContacts(backupData.staffContacts);
-    }
-    if (backupData.maintenanceTickets && Array.isArray(backupData.maintenanceTickets)) {
-      setMaintenanceTickets(backupData.maintenanceTickets);
-    }
+    const r = backupData.rooms && Array.isArray(backupData.rooms) ? backupData.rooms : rooms;
+    const t = backupData.tenants && Array.isArray(backupData.tenants) ? backupData.tenants : tenants;
+    const bg = backupData.bulkGroups && Array.isArray(backupData.bulkGroups) ? backupData.bulkGroups : bulkGroups;
+    const p = backupData.rentPayments && Array.isArray(backupData.rentPayments) ? backupData.rentPayments : rentPayments;
+    const exp = backupData.expenses && Array.isArray(backupData.expenses) ? backupData.expenses : expenses;
+    const inc = backupData.incomes && Array.isArray(backupData.incomes) ? backupData.incomes : incomes;
+    const sc = backupData.staffContacts && Array.isArray(backupData.staffContacts) ? backupData.staffContacts : staffContacts;
+    const mt = backupData.maintenanceTickets && Array.isArray(backupData.maintenanceTickets) ? backupData.maintenanceTickets : maintenanceTickets;
+
+    setRooms(r);
+    setTenants(t);
+    setBulkGroups(bg);
+    setRentPayments(p);
+    setExpenses(exp);
+    setIncomes(inc);
+    setStaffContacts(sc);
+    setMaintenanceTickets(mt);
+
+    try {
+      localStorage.setItem('agam_pg_rooms', JSON.stringify(r));
+      localStorage.setItem('agam_pg_tenants', JSON.stringify(t));
+      localStorage.setItem('agam_pg_bulk_groups', JSON.stringify(bg));
+      localStorage.setItem('agam_pg_payments', JSON.stringify(p));
+      localStorage.setItem('agam_pg_expenses', JSON.stringify(exp));
+      localStorage.setItem('agam_pg_incomes', JSON.stringify(inc));
+      localStorage.setItem('agam_pg_staff', JSON.stringify(sc));
+      localStorage.setItem('agam_pg_tickets', JSON.stringify(mt));
+      localStorage.setItem('agam_pg_last_updated', new Date().toISOString());
+    } catch (e) {}
+
+    saveStateToCloudImmediately({
+      rooms: r,
+      tenants: t,
+      payments: p,
+      incomes: inc,
+      expenses: exp,
+      maintenanceTickets: mt,
+      staffContacts: sc,
+      bulkGroups: bg,
+      notices,
+      whatsappTemplates: whatsAppTemplates,
+    });
+
     showToast('Successfully restored all PG data!');
   };
 
@@ -994,6 +1580,39 @@ export default function App() {
       setRoomsFilter(filter || 'all');
     }
   };
+
+  // Live Reconciled Room Occupancy derived from Active Tenants
+  // Guarantees room 101, amar, or any other tenant is dynamically counted and never out of sync!
+  const computedRooms = useMemo(() => {
+    return rooms.map((room) => {
+      const activeOccupants = tenants.filter(
+        (t) => t.isActive && Number(t.roomNumber) === Number(room.number)
+      );
+      const occupantNames = activeOccupants.map((t) => t.name.split(' ')[0]);
+      const occupiedCount = activeOccupants.length;
+      const status =
+        room.status === 'maintenance'
+          ? 'maintenance'
+          : occupiedCount >= room.capacity
+          ? 'full'
+          : occupiedCount > 0
+          ? 'partial'
+          : 'empty';
+
+      return {
+        ...room,
+        occupied: occupiedCount,
+        occupants: occupantNames,
+        status,
+      };
+    });
+  }, [rooms, tenants]);
+
+  // Keep selectedRoom updated in real-time if open in modal
+  const activeSelectedRoom = useMemo(() => {
+    if (!selectedRoom) return null;
+    return computedRooms.find((r) => r.id === selectedRoom.id) || selectedRoom;
+  }, [selectedRoom, computedRooms]);
 
   return (
     <div className="bg-slate-100/70 min-h-screen text-slate-900 font-sans selection:bg-emerald-600 selection:text-white pb-[80px]">
@@ -1009,7 +1628,7 @@ export default function App() {
       <main className="pt-[60px] pb-6 min-h-[calc(100vh-140px)]">
         {currentTab === 'home' && (
           <HomeScreen
-            rooms={rooms}
+            rooms={computedRooms}
             tenants={tenants}
             bulkGroups={bulkGroups}
             expenses={expenses}
@@ -1033,7 +1652,7 @@ export default function App() {
 
         {currentTab === 'rooms' && (
           <RoomsScreen
-            rooms={rooms}
+            rooms={computedRooms}
             tenants={tenants}
             initialStatusFilter={roomsFilter}
             onSelectRoom={(room) => {
@@ -1053,6 +1672,7 @@ export default function App() {
           <PeopleScreen
             tenants={tenants}
             bulkGroups={bulkGroups}
+            initialFilter={peopleFilter}
             onSelectTenant={(tenant) => {
               setSelectedTenant(tenant);
               setIsTenantDetailOpen(true);
@@ -1105,12 +1725,7 @@ export default function App() {
             incomes={incomes}
             bulkGroups={bulkGroups}
             onAddTicket={handleAddTicket}
-            onUpdateTicketStatus={(id, status) => {
-              setMaintenanceTickets((prev) =>
-                prev.map((t) => (t.id === id ? { ...t, status } : t))
-              );
-              showToast('Repair ticket marked as resolved!');
-            }}
+            onUpdateTicketStatus={handleUpdateTicketStatus}
             onAddStaff={handleAddStaff}
             onDeleteStaff={handleDeleteStaff}
             onRestoreBackup={handleRestoreBackup}
@@ -1179,7 +1794,7 @@ export default function App() {
       <RoomDetailModal
         isOpen={isRoomDetailOpen}
         onClose={() => setIsRoomDetailOpen(false)}
-        room={selectedRoom}
+        room={activeSelectedRoom}
         tenants={tenants}
         onAddTenantToRoom={() => {
           setIsAddTenantOpen(true);
@@ -1222,6 +1837,7 @@ export default function App() {
         onToggleActiveStatus={handleToggleTenantActive}
         onUpdateTenantNotes={handleUpdateTenantNotes}
         onSendWhatsApp={handleSendWhatsApp}
+        onUpdateTenant={handleUpdateTenant}
       />
 
       <AddExpenseModal

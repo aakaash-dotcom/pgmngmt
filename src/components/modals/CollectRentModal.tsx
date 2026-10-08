@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Tenant, RentPayment } from '../../types';
+import { getCurrentMonthYear, getMonthList } from '../../utils/dateUtils';
 
 interface CollectRentModalProps {
   isOpen: boolean;
@@ -52,18 +53,23 @@ export const CollectRentModal: React.FC<CollectRentModalProps> = ({
 
   const initialTarget = determineTargetTenant();
 
+  const currentMonth = getCurrentMonthYear();
+  const monthOptions = useMemo(() => getMonthList(5, 2), []);
+
   const [selectedTenantId, setSelectedTenantId] = useState<string>(initialTarget?.id || '');
   const [amount, setAmount] = useState<number>(4500);
   const [paymentMode, setPaymentMode] = useState<'UPI' | 'Cash' | 'Bank Transfer' | 'Cheque'>('UPI');
-  const [month, setMonth] = useState('Aug 2026');
+  const [month, setMonth] = useState(currentMonth);
   const [referenceId, setReferenceId] = useState('');
-  const [note, setNote] = useState('August 2026 Monthly Room Rent');
+  const [note, setNote] = useState(`${currentMonth} Monthly Room Rent`);
   const [showPaidTenants, setShowPaidTenants] = useState(false);
 
   // Auto-select when modal opens or initialTenantId/initialPayment changes
   useEffect(() => {
     if (isOpen) {
       const target = determineTargetTenant();
+      const activeMonth = currentMonth;
+      setMonth(activeMonth);
       if (target) {
         setSelectedTenantId(target.id);
         const dueAmt =
@@ -73,7 +79,7 @@ export const CollectRentModal: React.FC<CollectRentModalProps> = ({
             ? target.balance
             : target.rentAmount;
         setAmount(dueAmt);
-        setNote(`${month} Monthly Room Rent - Room ${target.roomNumber}`);
+        setNote(`${activeMonth} Monthly Room Rent - Room ${target.roomNumber}`);
       }
       setShowPaidTenants(false);
     }
@@ -231,12 +237,19 @@ export const CollectRentModal: React.FC<CollectRentModalProps> = ({
               </label>
               <select
                 value={month}
-                onChange={(e) => setMonth(e.target.value)}
+                onChange={(e) => {
+                  setMonth(e.target.value);
+                  if (selectedTenant) {
+                    setNote(`${e.target.value} Monthly Room Rent - Room ${selectedTenant.roomNumber}`);
+                  }
+                }}
                 className="w-full h-[40px] px-3 border border-slate-300 rounded-xl bg-white text-slate-900 font-bold focus:outline-none"
               >
-                <option value="Aug 2026">Aug 2026</option>
-                <option value="Sep 2026">Sep 2026</option>
-                <option value="Jul 2026">Jul 2026</option>
+                {monthOptions.map((m) => (
+                  <option key={m} value={m}>
+                    {m} {m === currentMonth ? '• Current' : ''}
+                  </option>
+                ))}
               </select>
             </div>
           </div>

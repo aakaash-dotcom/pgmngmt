@@ -323,6 +323,19 @@ export async function getOrCreateFolder(
   return folderData.id;
 }
 
+export const getCustomDriveFolderName = (): string => {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('agam_pg_custom_drive_folder') || 'Agam PG Documents';
+  }
+  return 'Agam PG Documents';
+};
+
+export const setCustomDriveFolderName = (name: string) => {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('agam_pg_custom_drive_folder', name.trim() || 'Agam PG Documents');
+  }
+};
+
 export async function getResidentDriveFolderId(
   accessToken: string,
   tenant: {
@@ -333,11 +346,12 @@ export async function getResidentDriveFolderId(
     groupName?: string;
   }
 ): Promise<{ folderId: string; folderPath: string }> {
-  // 1. Master Root folder: "Agam PG Documents"
-  const rootId = await getOrCreateFolder(accessToken, 'Agam PG Documents');
+  // 1. Master Root folder: configured or default "Agam PG Documents"
+  const rootFolderName = getCustomDriveFolderName();
+  const rootId = await getOrCreateFolder(accessToken, rootFolderName);
 
   let parentId = rootId;
-  let path = 'Agam PG Documents';
+  let path = rootFolderName;
 
   // 2. Individual vs Group Category
   if (tenant.isBulkContract && tenant.groupName) {

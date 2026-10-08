@@ -4,6 +4,7 @@ import { Tenant, BulkGroup } from '../types';
 interface PeopleScreenProps {
   tenants?: Tenant[];
   bulkGroups?: BulkGroup[];
+  initialFilter?: string;
   onSelectTenant: (tenant: Tenant) => void;
   onAddTenant: () => void;
   onOpenBulkManager?: () => void;
@@ -14,6 +15,7 @@ interface PeopleScreenProps {
 export const PeopleScreen: React.FC<PeopleScreenProps> = ({
   tenants = [],
   bulkGroups = [],
+  initialFilter = 'active',
   onSelectTenant,
   onAddTenant,
   onOpenBulkManager,
@@ -21,8 +23,15 @@ export const PeopleScreen: React.FC<PeopleScreenProps> = ({
   onSendWhatsAppReminder,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeFilter, setActiveFilter] = useState<string>('active'); // 'active', 'individual', 'bulk', 'overdue', 'checked_out', or specific groupName
+  const [activeFilter, setActiveFilter] = useState<string>(initialFilter || 'active'); // 'active', 'individual', 'bulk', 'overdue', 'checked_out', or specific groupName
   const [roomFilter, setRoomFilter] = useState<string>('all');
+
+  // Keep in sync if initialFilter changes externally
+  React.useEffect(() => {
+    if (initialFilter) {
+      setActiveFilter(initialFilter);
+    }
+  }, [initialFilter]);
 
   const activeTenants = tenants.filter((t) => t.isActive);
   const checkedOutTenants = tenants.filter((t) => !t.isActive);

@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { uploadImageFileToGoogleDrive, getResidentDriveFolderId, compressImageBlob } from '../lib/googleWorkspace';
 import { getAccessToken, googleSignIn } from '../lib/firebase';
+import { getSavedAppsScriptUrl, uploadImageViaAppsScript } from '../lib/driveAppsScript';
+import { AppsScriptSetupModal } from './modals/AppsScriptSetupModal';
 
 interface DocumentCameraCaptureProps {
   tenantName?: string;
@@ -36,6 +38,8 @@ export const DocumentCameraCapture: React.FC<DocumentCameraCaptureProps> = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
   const [targetDriveFolder, setTargetDriveFolder] = useState<string | null>(null);
+  const [isAppsScriptModalOpen, setIsAppsScriptModalOpen] = useState(false);
+  const [appsScriptUrl, setAppsScriptUrl] = useState(getSavedAppsScriptUrl());
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -137,11 +141,45 @@ export const DocumentCameraCapture: React.FC<DocumentCameraCaptureProps> = ({
     processAndCompressImage(file);
   };
 
+  const handleUseDirectPhoto = () => {
+    if (!capturedImage) return;
+    setUploadedUrl(capturedImage);
+    setUploadStatus('Photo attached directly to resident profile & database!');
+    if (onUploaded) {
+      onUploaded(capturedImage, `local_doc_${Date.now()}`);
+    }
+  };
+
   const handleUploadToDrive = async () => {
-    if (!capturedBlob) return;
+    if (!capturedBlob && !capturedImage) return;
     try {
       setIsUploading(true);
       setErrorMessage(null);
+
+      const cleanDocType = docType.toLowerCase().includes('tnc') || docType.toLowerCase().includes('term') || docType.toLowerCase().includes('agree')
+        ? 'Terms_And_Conditions_Agreement'
+        : 'ID_Proof';
+      const cleanPerson = tenantName.replace(/[^a-zA-Z0-9]/g, '_');
+      const timeTag = new Date().toISOString().slice(0, 10);
+      const fileName = `${cleanDocType}_${cleanPerson}_${timeTag}.jpg`;
+
+      // 1. Check if user configured Google Apps Script Webhook (Best method: zero login required)
+      const currentScriptUrl = getSavedAppsScriptUrl();
+      if (currentScriptUrl && capturedImage) {
+        setUploadStatus('Uploading directly to your personal Google Drive via Apps Script...');
+        const res = await uploadImageViaAppsScript(capturedImage, fileName);
+        if (res.fileUrl) {
+          setUploadedUrl(res.fileUrl);
+          setTargetDriveFolder(res.folderName || 'Agam PG Documents');
+          setUploadStatus('Document uploaded directly to your Google Drive successfully!');
+          if (onUploaded) {
+            onUploaded(res.fileUrl, res.fileId || `drive_${Date.now()}`);
+          }
+          return;
+        }
+      }
+
+      // 2. If no Apps Script, try Google Workspace OAuth
       setUploadStatus('Authenticating with Google Workspace...');
 
       let token = await getAccessToken();
@@ -150,7 +188,7 @@ export const DocumentCameraCapture: React.FC<DocumentCameraCaptureProps> = ({
         token = res?.accessToken || null;
       }
       if (!token) {
-        throw new Error('Please sign in to Google Workspace to upload to Google Drive.');
+        throw new Error('Please connect your Google Account or set up Google Apps Script to upload to Drive.');
       }
 
       setUploadStatus('Creating organized Drive folder hierarchy...');
@@ -164,16 +202,9 @@ export const DocumentCameraCapture: React.FC<DocumentCameraCaptureProps> = ({
       setTargetDriveFolder(folderPath);
 
       setUploadStatus(`Uploading compressed photo (${compressedSizeKb || 150} KB)...`);
-      const cleanDocType = docType.toLowerCase().includes('tnc') || docType.toLowerCase().includes('term') || docType.toLowerCase().includes('agree')
-        ? 'Terms_And_Conditions_Agreement'
-        : 'ID_Proof';
-      const cleanPerson = tenantName.replace(/[^a-zA-Z0-9]/g, '_');
-      const timeTag = new Date().toISOString().slice(0, 10);
-      const fileName = `${cleanDocType}_${cleanPerson}_${timeTag}.jpg`;
-
-      const uploadResult = await uploadImageFileToGoogleDrive(token, fileName, capturedBlob, folderId);
+      const uploadResult = await uploadImageFileToGoogleDrive(token, fileName, capturedBlob!, folderId);
       
-      setUploadStatus('Document uploaded & organized successfully!');
+      setUploadStatus('Document uploaded & organized in Google Drive successfully!');
       if (uploadResult.webViewLink) {
         setUploadedUrl(uploadResult.webViewLink);
         if (onUploaded) {
@@ -182,8 +213,21 @@ export const DocumentCameraCapture: React.FC<DocumentCameraCaptureProps> = ({
       }
     } catch (err: any) {
       console.error('Drive upload error:', err);
-      setErrorMessage(`Upload failed: ${err.message || 'Network error'}`);
-      setUploadStatus(null);
+      const msg = err.message || '';
+      const isOriginMismatch = msg.includes('origin_mismatch') || msg.includes('400') || msg.includes('policy') || msg.includes('Account');
+      if (isOriginMismatch) {
+        setErrorMessage('Google OAuth popup is blocked by Google on preview web domains. We auto-saved your photo directly into the resident profile so it is never lost! You can also connect your Google Drive in 60 seconds with our zero-login Apps Script below.');
+      } else {
+        setErrorMessage(`Drive upload issue: ${msg || 'Network error'}. Photo was auto-attached directly to resident profile so it is not lost!`);
+      }
+      // Guarantee the user NEVER loses their captured photo
+      if (capturedImage) {
+        setUploadedUrl(capturedImage);
+        if (onUploaded) {
+          onUploaded(capturedImage, `local_doc_${Date.now()}`);
+        }
+      }
+      setUploadStatus('Saved directly into resident profile & database');
     } finally {
       setIsUploading(false);
     }
@@ -215,6 +259,26 @@ export const DocumentCameraCapture: React.FC<DocumentCameraCaptureProps> = ({
             <span className="material-symbols-outlined text-[18px]">close</span>
           </button>
         )}
+      </div>
+
+      {/* Google Drive Status Bar / Apps Script Connector */}
+      <div className="flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-[11px]">
+        <div className="flex items-center gap-1.5">
+          <span className={`material-symbols-outlined text-[15px] ${appsScriptUrl ? 'text-emerald-600' : 'text-slate-400'}`}>
+            {appsScriptUrl ? 'cloud_done' : 'cloud_off'}
+          </span>
+          <span className="font-semibold text-slate-700">
+            {appsScriptUrl ? 'Personal Drive Connected (Apps Script)' : 'Drive: Direct / Apps Script'}
+          </span>
+        </div>
+        <button
+          type="button"
+          onClick={() => setIsAppsScriptModalOpen(true)}
+          className="text-emerald-700 hover:text-emerald-800 font-bold underline flex items-center gap-0.5"
+        >
+          <span>{appsScriptUrl ? 'Settings' : 'Connect Drive (No Login)'}</span>
+          <span className="material-symbols-outlined text-[13px]">arrow_forward</span>
+        </button>
       </div>
 
       {/* Mode Selector */}
@@ -345,35 +409,48 @@ export const DocumentCameraCapture: React.FC<DocumentCameraCaptureProps> = ({
             </a>
           )}
 
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={retakePhoto}
-              disabled={isUploading}
-              className="flex-1 h-[36px] bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-[11px] transition-colors"
-            >
-              Retake / Change
-            </button>
+          <div className="flex flex-col gap-2 pt-1">
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={handleUseDirectPhoto}
+                disabled={isUploading || isCompressing}
+                className="flex-1 h-[38px] bg-emerald-800 hover:bg-emerald-900 disabled:opacity-50 text-white font-extrabold rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 text-[12px]"
+              >
+                <span className="material-symbols-outlined text-[17px]">check_circle</span>
+                <span>Use This Photo</span>
+              </button>
 
-            {!uploadedUrl ? (
               <button
                 type="button"
                 onClick={handleUploadToDrive}
                 disabled={isUploading || isCompressing}
-                className="flex-1 h-[36px] bg-[#0a332c] hover:bg-[#0f4239] disabled:opacity-50 text-white font-extrabold rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 text-[11px]"
+                className="flex-1 h-[38px] bg-blue-50 hover:bg-blue-100 border border-blue-300 text-blue-900 font-bold rounded-xl shadow-2xs transition-all flex items-center justify-center gap-1.5 text-[11px]"
               >
-                <span className="material-symbols-outlined text-[16px]">cloud_upload</span>
-                <span>{isUploading ? 'Uploading...' : 'Save to Organized Drive'}</span>
+                <span className="material-symbols-outlined text-[16px] text-blue-700">cloud_upload</span>
+                <span>{isUploading ? 'Uploading...' : 'Save to Drive'}</span>
               </button>
-            ) : (
+            </div>
+
+            <div className="flex gap-2">
               <button
                 type="button"
-                onClick={onClose}
-                className="flex-1 h-[36px] bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold rounded-xl text-[11px]"
+                onClick={retakePhoto}
+                disabled={isUploading}
+                className="flex-1 h-[32px] bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-[11px] transition-colors"
               >
-                Done
+                Retake / Select Different Photo
               </button>
-            )}
+              {onClose && (
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-4 h-[32px] bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-xl text-[11px] transition-colors"
+                >
+                  Done
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -386,6 +463,16 @@ export const DocumentCameraCapture: React.FC<DocumentCameraCaptureProps> = ({
       )}
 
       <canvas ref={canvasRef} className="hidden" />
+
+      {/* Google Apps Script Drive Setup Modal */}
+      <AppsScriptSetupModal
+        isOpen={isAppsScriptModalOpen}
+        onClose={() => setIsAppsScriptModalOpen(false)}
+        onSaved={(url) => {
+          setAppsScriptUrl(url);
+          setErrorMessage(null);
+        }}
+      />
     </div>
   );
 };

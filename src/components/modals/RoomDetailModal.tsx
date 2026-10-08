@@ -124,9 +124,9 @@ export const RoomDetailModal: React.FC<RoomDetailModalProps> = ({
           <div className="border border-slate-200 rounded-xl p-4 flex flex-col gap-2.5">
             <div className="flex justify-between items-center pb-1 border-b border-slate-100">
               <span className="text-[12px] font-bold uppercase tracking-wider text-slate-700">
-                Current Tenants ({room.occupants.length})
+                Current Tenants ({roomTenants.length > 0 ? roomTenants.length : room.occupants.length})
               </span>
-              {!isMaintenance && room.occupied < room.capacity && (
+              {!isMaintenance && (roomTenants.length > 0 ? roomTenants.length : room.occupied) < room.capacity && (
                 <button
                   onClick={() => {
                     onClose();
@@ -140,7 +140,53 @@ export const RoomDetailModal: React.FC<RoomDetailModalProps> = ({
               )}
             </div>
 
-            {room.occupants.length > 0 ? (
+            {roomTenants.length > 0 ? (
+              <div className="flex flex-col gap-2 pt-1">
+                {roomTenants.map((tenant, idx) => (
+                  <div
+                    key={tenant.id}
+                    onClick={() => {
+                      onClose();
+                      onSelectTenant(tenant);
+                    }}
+                    className="p-3 rounded-xl bg-slate-50 hover:bg-blue-50/60 border border-slate-200 hover:border-blue-200 flex items-center justify-between cursor-pointer transition-all group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-800 text-[13px] font-extrabold flex items-center justify-center">
+                        {tenant.bedNumber || `B${idx + 1}`}
+                      </div>
+                      <div>
+                        <div className="font-bold text-slate-900 text-[14px] group-hover:text-blue-700 transition-colors">
+                          {tenant.name}
+                        </div>
+                        <div className="text-[12px] text-slate-500 font-medium flex items-center gap-2">
+                          <span>{tenant.phone}</span>
+                          <span>•</span>
+                          <span>₹{tenant.rentAmount?.toLocaleString('en-IN')}/mo</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${
+                          tenant.status === 'Paid'
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : tenant.status === 'Overdue'
+                            ? 'bg-rose-100 text-rose-800'
+                            : 'bg-amber-100 text-amber-800'
+                        }`}
+                      >
+                        {tenant.status}
+                      </span>
+                      <span className="material-symbols-outlined text-slate-400 group-hover:text-blue-600 text-[20px]">
+                        chevron_right
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : room.occupants.length > 0 ? (
               <div className="flex flex-col gap-2 pt-1">
                 {room.occupants.map((occName, idx) => {
                   const tenantMatch = roomTenants.find((t) =>

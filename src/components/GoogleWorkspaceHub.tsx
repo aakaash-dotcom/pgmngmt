@@ -15,8 +15,13 @@ import {
   listDriveBackups,
   downloadDriveFile,
   listDriveDocuments,
+  getCustomDriveFolderName,
+  setCustomDriveFolderName,
 } from '../lib/googleWorkspace';
 import { DocumentCameraCapture } from './DocumentCameraCapture';
+import { getSavedAppsScriptUrl, exportSheetViaAppsScript } from '../lib/driveAppsScript';
+import { AppsScriptSetupModal } from './modals/AppsScriptSetupModal';
+import { exportFinancialLedger, downloadFile, copyToClipboard } from '../utils/exportUtils';
 
 interface GoogleWorkspaceHubProps {
   tenants?: Tenant[];
@@ -80,6 +85,11 @@ export const GoogleWorkspaceHub: React.FC<GoogleWorkspaceHubProps> = ({
   const [selectedTenantId, setSelectedTenantId] = useState<string>(tenants[0]?.id || '');
   const [docCategory, setDocCategory] = useState<'Aadhaar / ID Proof' | 'Passport' | 'Signed Rental Agreement' | 'Rent Receipt'>('Aadhaar / ID Proof');
   const [showCameraModal, setShowCameraModal] = useState(false);
+  const [driveFolderName, setDriveFolderName] = useState<string>(getCustomDriveFolderName());
+  const [isEditingFolderName, setIsEditingFolderName] = useState(false);
+  const [tempFolderName, setTempFolderName] = useState(getCustomDriveFolderName());
+  const [appsScriptUrl, setAppsScriptUrl] = useState<string>(getSavedAppsScriptUrl());
+  const [isAppsScriptModalOpen, setIsAppsScriptModalOpen] = useState(false);
 
   const showToast = (text: string, type: 'success' | 'error' | 'info' = 'success') => {
     setStatusMessage({ text, type });
@@ -168,11 +178,28 @@ export const GoogleWorkspaceHub: React.FC<GoogleWorkspaceHubProps> = ({
     return token;
   };
 
+  // Direct CSV and Clipboard Export Helpers
+  const handleDownloadMasterCSV = () => {
+    const { csv } = exportFinancialLedger(incomes, expenses, rentPayments);
+    const dateStr = new Date().toISOString().split('T')[0];
+    downloadFile(csv, `Agam_PG_Financial_Ledger_${dateStr}.csv`);
+    showToast('Downloaded Financial Ledger CSV!', 'success');
+  };
+
+  const handleCopyTSV = async () => {
+    const { tsv } = exportFinancialLedger(incomes, expenses, rentPayments);
+    const ok = await copyToClipboard(tsv);
+    if (ok) {
+      showToast('Copied to clipboard! Go to sheets.new and press Ctrl+V', 'success');
+    } else {
+      showToast('Could not copy to clipboard', 'error');
+    }
+  };
+
   // Google Sheets Export
   const handleExportSheets = async () => {
     try {
       setIsLoading(true);
-      const token = await getValidToken();
 
       const tabs = [
         {
@@ -253,12 +280,35 @@ export const GoogleWorkspaceHub: React.FC<GoogleWorkspaceHubProps> = ({
       const timeTag = new Date().toLocaleDateString('en-IN', { month: 'short', year: 'numeric', day: '2-digit' });
       const spreadsheetTitle = `Agam PG Management • Live Master Ledger (${timeTag})`;
 
-      const result = await createPgGoogleSpreadsheet(token, spreadsheetTitle, tabs);
-      setCreatedSheetUrl(result.spreadsheetUrl);
-      showToast('Google Spreadsheet generated with all PG records!', 'success');
+      // Strategy 1: Check Apps Script Web App URL first (no Google OAuth login popup required!)
+      const savedScriptUrl = getSavedAppsScriptUrl();
+      if (savedScriptUrl) {
+        try {
+          const scriptResult = await exportSheetViaAppsScript(spreadsheetTitle, tabs, driveFolderName, savedScriptUrl);
+          if (scriptResult.status === 'success' && (scriptResult.spreadsheetUrl || scriptResult.fileUrl)) {
+            const url = scriptResult.spreadsheetUrl || scriptResult.fileUrl || '';
+            setCreatedSheetUrl(url);
+            showToast('Google Spreadsheet generated via Apps Script!', 'success');
+            return;
+          }
+        } catch (scriptErr: any) {
+          console.warn('Apps Script sheet export failed, trying Google OAuth or CSV:', scriptErr);
+        }
+      }
+
+      // Strategy 2: Google Workspace OAuth (if user connected account)
+      try {
+        const token = await getValidToken();
+        const result = await createPgGoogleSpreadsheet(token, spreadsheetTitle, tabs);
+        setCreatedSheetUrl(result.spreadsheetUrl);
+        showToast('Google Spreadsheet generated with all PG records!', 'success');
+      } catch (oauthErr: any) {
+        // Strategy 3: Automatic fallback to Instant CSV download
+        handleDownloadMasterCSV();
+      }
     } catch (err: any) {
       console.error(err);
-      showToast(`Sheets export failed: ${err.message}`, 'error');
+      handleDownloadMasterCSV();
     } finally {
       setIsLoading(false);
     }
@@ -268,7 +318,6 @@ export const GoogleWorkspaceHub: React.FC<GoogleWorkspaceHubProps> = ({
   const handleExportGroupSheet = async () => {
     try {
       setIsLoading(true);
-      const token = await getValidToken();
 
       const groupMembers = tenants.filter(
         (t) => t.isBulkContract && t.groupName === selectedExportGroup
@@ -290,6 +339,71 @@ export const GoogleWorkspaceHub: React.FC<GoogleWorkspaceHubProps> = ({
         (p) => groupMemberNames.has(p.tenantName.toLowerCase())
       );
 
+      // Strategy 1: Check Apps Script Web App URL first
+      const savedScriptUrl = getSavedAppsScriptUrl();
+      if (savedScriptUrl) {
+        try {
+          const groupTabs = [
+            {
+              title: 'Group Summary',
+              headers: ['Parameter', 'Details'],
+              rows: [
+                ['Group / Contract Name', selectedExportGroup],
+                ['Company Name', groupInfo.companyName],
+                ['Authorized Contact Person', groupInfo.contactPerson],
+                ['Company Contact Phone', groupInfo.contactPhone],
+                ['Contract Rent / Person', `₹${groupInfo.rentPerPerson}`],
+                ['Security Deposit / Person', `₹${groupInfo.advancePerPerson}`],
+                ['Billing Model', groupInfo.billingModel],
+                ['Total Assigned Occupants', String(groupMembers.length)],
+                ['Notes', groupInfo.notes],
+              ],
+            },
+            {
+              title: 'Occupants Roster',
+              headers: ['Resident Name', 'Phone', 'Room', 'Bed #', 'Monthly Rent (₹)', 'Advance (₹)', 'Check-in Date', 'Status'],
+              rows: groupMembers.map((m) => [
+                m.name,
+                m.phone,
+                m.roomNumber,
+                m.bedNumber || '',
+                m.rentAmount,
+                m.securityDeposit,
+                m.checkInDate || '',
+                m.status,
+              ]),
+            },
+            {
+              title: 'Rent Payments',
+              headers: ['Payment ID', 'Resident', 'Room', 'Amount (₹)', 'Month', 'Paid Date', 'Mode', 'Status'],
+              rows: groupPayments.map((p) => [
+                p.id,
+                p.tenantName,
+                p.roomNumber,
+                p.amount,
+                p.month,
+                p.paidDate || '',
+                p.paymentMode,
+                p.status,
+              ]),
+            },
+          ];
+
+          const groupTitle = `Agam PG • Contract Group: ${selectedExportGroup}`;
+          const scriptResult = await exportSheetViaAppsScript(groupTitle, groupTabs, driveFolderName, savedScriptUrl);
+          if (scriptResult.status === 'success' && (scriptResult.spreadsheetUrl || scriptResult.fileUrl)) {
+            const url = scriptResult.spreadsheetUrl || scriptResult.fileUrl || '';
+            setCreatedGroupSheetUrl(url);
+            showToast(`Google Sheet for "${selectedExportGroup}" generated!`, 'success');
+            return;
+          }
+        } catch (scriptErr) {
+          console.warn('Apps Script group sheet export failed, trying OAuth:', scriptErr);
+        }
+      }
+
+      // Strategy 2: OAuth token
+      const token = await getValidToken();
       const result = await createGroupSpecificGoogleSpreadsheet(
         token,
         selectedExportGroup,
@@ -378,40 +492,59 @@ export const GoogleWorkspaceHub: React.FC<GoogleWorkspaceHubProps> = ({
 
   return (
     <div className="flex flex-col gap-4 pb-20 max-w-5xl mx-auto px-3 sm:px-4 pt-1.5">
-      {/* Google Account Status Banner */}
+      {/* Google Account & Drive Status Banner */}
       <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-2xl bg-emerald-50 text-[#0a332c] border border-emerald-200 flex items-center justify-center font-bold">
+          <div className="w-11 h-11 rounded-2xl bg-emerald-50 text-[#0a332c] border border-emerald-200 flex items-center justify-center font-bold shrink-0">
             <span className="material-symbols-outlined text-[22px]">cloud_sync</span>
           </div>
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <h3 className="text-[16px] font-black text-slate-900 leading-tight">
                 Google Workspace & Cloud Storage
               </h3>
+              {appsScriptUrl && (
+                <span className="bg-emerald-100 text-emerald-900 text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-emerald-300 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
+                  Personal Drive Connected (Apps Script)
+                </span>
+              )}
               {currentUser && (
-                <span className="bg-emerald-100 text-emerald-900 text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-emerald-200">
-                  Connected
+                <span className="bg-blue-100 text-blue-900 text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-blue-200">
+                  Workspace OAuth Active
                 </span>
               )}
             </div>
-            <p className="text-[12px] text-slate-500 font-medium mt-0.5">
-              {currentUser
+            <p className="text-[12px] text-slate-600 font-medium mt-1">
+              {appsScriptUrl
+                ? 'Your personal Google Drive is linked and receiving documents directly via Apps Script. No browser login required!'
+                : currentUser
                 ? `Signed in as ${currentUser.displayName || currentUser.email}`
                 : 'Connect Google account to take document photos and save directly to Google Drive'}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto">
+        <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
+          {appsScriptUrl && (
+            <button
+              onClick={() => setIsAppsScriptModalOpen(true)}
+              className="px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-extrabold rounded-xl text-[12px] flex items-center gap-1.5 transition-colors"
+            >
+              <span className="material-symbols-outlined text-[16px]">tune</span>
+              <span>Apps Script Settings</span>
+            </button>
+          )}
+
           {!currentUser ? (
             <button
               onClick={handleSignIn}
               disabled={isLoading}
-              className="w-full sm:w-auto px-4 py-2 bg-[#0a332c] hover:bg-[#0f4239] text-white font-extrabold rounded-xl text-[12px] shadow-xs flex items-center justify-center gap-2 transition-all"
+              title="Only needed for interactive Google Sheets export"
+              className="w-full sm:w-auto px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold rounded-xl text-[12px] border border-slate-200 flex items-center justify-center gap-1.5 transition-all"
             >
-              <span className="material-symbols-outlined text-[18px]">login</span>
-              <span>Connect Google Account</span>
+              <span className="material-symbols-outlined text-[16px]">login</span>
+              <span>Optional: Sign In for Sheets</span>
             </button>
           ) : (
             <button
@@ -484,6 +617,102 @@ export const GoogleWorkspaceHub: React.FC<GoogleWorkspaceHubProps> = ({
       {/* TAB 1: CAMERA & GOOGLE DRIVE DOCUMENTS */}
       {activeTab === 'camera-drive' && (
         <div className="flex flex-col gap-4">
+          {/* Drive Folder Configuration & Quick Link */}
+          <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-blue-50 border border-emerald-200/80 rounded-2xl p-4 sm:p-5 flex flex-col gap-3 shadow-xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-start gap-2.5">
+                <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                  <span className="material-symbols-outlined text-[22px]">folder_shared</span>
+                </div>
+                <div>
+                  <h4 className="text-[15px] font-black text-slate-900 leading-tight">
+                    Google Drive Storage Location & Links
+                  </h4>
+                  <p className="text-[12px] text-slate-600 font-medium mt-0.5">
+                    Images and documents captured in this app are uploaded directly to your Google Drive.
+                  </p>
+                </div>
+              </div>
+
+              <a
+                href="https://drive.google.com"
+                target="_blank"
+                rel="noreferrer"
+                className="self-start sm:self-auto px-3.5 py-2 bg-white hover:bg-slate-50 text-emerald-800 border border-emerald-300 font-extrabold rounded-xl text-[12px] flex items-center gap-1.5 shadow-2xs transition-all"
+              >
+                <span>Open Google Drive</span>
+                <span className="material-symbols-outlined text-[15px]">open_in_new</span>
+              </a>
+            </div>
+
+            <div className="bg-white/90 border border-emerald-100 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                  Target Drive Folder:
+                </span>
+                {!isEditingFolderName ? (
+                  <span className="font-extrabold text-[13px] text-emerald-950 font-mono bg-emerald-100/60 px-2 py-0.5 rounded">
+                    📁 {driveFolderName}
+                  </span>
+                ) : (
+                  <input
+                    type="text"
+                    value={tempFolderName}
+                    onChange={(e) => setTempFolderName(e.target.value)}
+                    placeholder="e.g. Agam PG Documents"
+                    className="text-[12px] font-bold px-2 py-1 border border-emerald-400 rounded bg-white text-slate-900 focus:outline-none"
+                  />
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                {!isEditingFolderName ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTempFolderName(driveFolderName);
+                      setIsEditingFolderName(true);
+                    }}
+                    className="text-[11px] font-bold text-emerald-700 hover:text-emerald-900 hover:underline flex items-center gap-1"
+                  >
+                    <span className="material-symbols-outlined text-[14px]">edit</span>
+                    <span>Change Folder Name</span>
+                  </button>
+                ) : (
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingFolderName(false)}
+                      className="text-[11px] font-medium text-slate-500 hover:text-slate-800 px-2 py-1"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const nextName = tempFolderName.trim() || 'Agam PG Documents';
+                        setCustomDriveFolderName(nextName);
+                        setDriveFolderName(nextName);
+                        setIsEditingFolderName(false);
+                        showToast(`Google Drive root folder set to "${nextName}"!`, 'success');
+                      }}
+                      className="text-[11px] font-bold bg-emerald-700 hover:bg-emerald-800 text-white px-2.5 py-1 rounded-lg"
+                    >
+                      Save
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="text-[11px] text-slate-500 flex items-center gap-1.5">
+              <span className="material-symbols-outlined text-[15px] text-emerald-600">info</span>
+              <span>
+                Want to change a resident's document link? Click <strong>Residents</strong> &gt; tap any resident &gt; click <strong>Change Link</strong> or <strong>Paste Link</strong>!
+              </span>
+            </div>
+          </div>
+
           {/* Action Card: Open Camera */}
           <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex flex-col gap-4">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
@@ -640,24 +869,53 @@ export const GoogleWorkspaceHub: React.FC<GoogleWorkspaceHubProps> = ({
           </div>
 
           {/* Master Full PG Ledger Export */}
-          <div className="p-4 bg-emerald-50/60 border border-emerald-200 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-            <div>
-              <span className="text-[11px] font-extrabold uppercase tracking-wider text-emerald-900 block">
-                Master Full PG Ledger Spreadsheet
-              </span>
-              <p className="text-[12px] text-emerald-800 font-semibold mt-0.5">
-                5 Tabs: Residents • Rooms • Rent Collections • Expenses • Other Incomes
-              </p>
+          <div className="p-4 bg-emerald-50/60 border border-emerald-200 rounded-xl flex flex-col gap-3">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+              <div>
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-emerald-900 block">
+                  Master Full PG Ledger Spreadsheet
+                </span>
+                <p className="text-[12px] text-emerald-800 font-semibold mt-0.5">
+                  5 Tabs: Residents • Rooms • Rent Collections • Expenses • Other Incomes
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                <button
+                  onClick={handleExportSheets}
+                  disabled={isLoading}
+                  className="flex-1 sm:flex-none px-4 py-2 bg-[#0a332c] hover:bg-[#0f4239] disabled:opacity-50 text-white font-extrabold rounded-xl text-[12px] shadow-xs flex items-center justify-center gap-2 transition-all"
+                >
+                  <span className="material-symbols-outlined text-[18px]">file_open</span>
+                  <span>{isLoading ? 'Generating Sheet...' : 'Export Master Google Sheet'}</span>
+                </button>
+              </div>
             </div>
 
-            <button
-              onClick={handleExportSheets}
-              disabled={isLoading}
-              className="w-full sm:w-auto px-4 py-2 bg-[#0a332c] hover:bg-[#0f4239] disabled:opacity-50 text-white font-extrabold rounded-xl text-[12px] shadow-xs flex items-center justify-center gap-2 transition-all"
-            >
-              <span className="material-symbols-outlined text-[18px]">file_open</span>
-              <span>{isLoading ? 'Generating Sheet...' : 'Export Master Google Sheet'}</span>
-            </button>
+            {/* Offline & Alternative Formats: CSV & Clipboard */}
+            <div className="pt-3 border-t border-emerald-200/60 flex flex-wrap items-center justify-between gap-2">
+              <span className="text-[11px] text-emerald-950/80 font-medium">
+                Alternative instant export options (no login or setup needed):
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleDownloadMasterCSV}
+                  className="px-3 py-1.5 bg-white border border-emerald-300 text-emerald-900 hover:bg-emerald-100/50 rounded-lg text-[11px] font-bold flex items-center gap-1.5 transition-colors shadow-2xs"
+                >
+                  <span className="material-symbols-outlined text-[15px] text-emerald-700">download</span>
+                  <span>Download Master CSV / Excel</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCopyTSV}
+                  className="px-3 py-1.5 bg-white border border-emerald-300 text-emerald-900 hover:bg-emerald-100/50 rounded-lg text-[11px] font-bold flex items-center gap-1.5 transition-colors shadow-2xs"
+                >
+                  <span className="material-symbols-outlined text-[15px] text-emerald-700">content_copy</span>
+                  <span>Copy TSV for sheets.new</span>
+                </button>
+              </div>
+            </div>
           </div>
 
           {createdSheetUrl && (
@@ -824,6 +1082,16 @@ export const GoogleWorkspaceHub: React.FC<GoogleWorkspaceHubProps> = ({
           </div>
         </div>
       )}
+
+      {/* Google Apps Script Modal */}
+      <AppsScriptSetupModal
+        isOpen={isAppsScriptModalOpen}
+        onClose={() => setIsAppsScriptModalOpen(false)}
+        onSaved={(url) => {
+          setAppsScriptUrl(url);
+          showToast(url ? 'Google Apps Script Drive connected!' : 'Google Apps Script URL disconnected.');
+        }}
+      />
     </div>
   );
 };

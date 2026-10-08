@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Expense, ExpenseCategory } from '../../types';
+import { getTodayDateString, formatMonthYearFromDateString } from '../../utils/dateUtils';
 
 interface AddExpenseModalProps {
   isOpen: boolean;
@@ -28,7 +29,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState<ExpenseCategory>('Electricity');
   const [amount, setAmount] = useState<number>(1500);
-  const [date, setDate] = useState('2026-08-14');
+  const [date, setDate] = useState(getTodayDateString());
   const [paidTo, setPaidTo] = useState('');
   const [paymentMode, setPaymentMode] = useState<'UPI' | 'Cash' | 'Bank Transfer'>('UPI');
   const [notes, setNotes] = useState('');
@@ -46,7 +47,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
       date,
       paidTo: paidTo.trim() || 'Vendor',
       paymentMode,
-      monthYear: 'Aug 2026',
+      monthYear: formatMonthYearFromDateString(date),
       notes: notes.trim() || undefined,
     });
 

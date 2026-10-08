@@ -12,6 +12,7 @@ interface TenantDetailModalProps {
   onToggleActiveStatus: (tenantId: string) => void;
   onUpdateTenantNotes: (tenantId: string, notes: string) => void;
   onSendWhatsApp?: (phone: string, text: string) => void;
+  onUpdateTenant?: (updatedTenant: Tenant) => void;
 }
 
 export const TenantDetailModal: React.FC<TenantDetailModalProps> = ({
@@ -23,11 +24,15 @@ export const TenantDetailModal: React.FC<TenantDetailModalProps> = ({
   onToggleActiveStatus,
   onUpdateTenantNotes,
   onSendWhatsApp,
+  onUpdateTenant,
 }) => {
   const [isEditingNotes, setIsEditingNotes] = useState(false);
   const [notesText, setNotesText] = useState(tenant?.notes || '');
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('default');
   const [activeScanner, setActiveScanner] = useState<'id' | 'terms' | null>(null);
+  const [editingLinkFor, setEditingLinkFor] = useState<'id' | 'terms' | null>(null);
+  const [manualLinkInput, setManualLinkInput] = useState<string>('');
+  const [previewImage, setPreviewImage] = useState<{ url: string; title: string } | null>(null);
 
   if (!isOpen || !tenant) return null;
 
@@ -268,13 +273,15 @@ export const TenantDetailModal: React.FC<TenantDetailModalProps> = ({
                   docType={activeScanner === 'id' ? `ID Proof (${tenant.idProofType || 'Aadhaar'})` : 'Terms & Conditions Agreement'}
                   compact={true}
                   onUploaded={(url) => {
+                    const updated = { ...tenant };
                     if (activeScanner === 'id') {
-                      tenant.documentPhotoUrl = url;
-                      tenant.documentsCollected = true;
+                      updated.documentPhotoUrl = url;
+                      updated.documentsCollected = true;
                     } else {
-                      tenant.termsDocumentUrl = url;
-                      tenant.agreementCollected = true;
+                      updated.termsDocumentUrl = url;
+                      updated.agreementCollected = true;
                     }
+                    if (onUpdateTenant) onUpdateTenant(updated);
                     setActiveScanner(null);
                   }}
                   onClose={() => setActiveScanner(null)}
@@ -283,99 +290,293 @@ export const TenantDetailModal: React.FC<TenantDetailModalProps> = ({
             )}
 
             {/* ID Proof Row */}
-            <div className="p-2.5 bg-white border border-slate-200 rounded-lg flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2 truncate">
-                <span className="material-symbols-outlined text-[18px] text-emerald-700">badge</span>
-                <div className="truncate">
-                  <span className="font-bold text-[12px] text-slate-800 block leading-tight">
-                    {tenant.idProofType || 'Aadhaar'} Document
-                  </span>
-                  <span className="text-[10px] text-slate-500 truncate block">
-                    {tenant.idProofNumber ? `#${tenant.idProofNumber}` : 'Number not registered'}
-                  </span>
+            <div className="p-2.5 bg-white border border-slate-200 rounded-lg flex flex-col gap-2">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 truncate">
+                  <span className="material-symbols-outlined text-[18px] text-emerald-700">badge</span>
+                  <div className="truncate">
+                    <span className="font-bold text-[12px] text-slate-800 block leading-tight">
+                      {tenant.idProofType || 'Aadhaar'} Document
+                    </span>
+                    <span className="text-[10px] text-slate-500 truncate block">
+                      {tenant.idProofNumber ? `#${tenant.idProofNumber}` : 'Number not registered'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {tenant.documentPhotoUrl ? (
+                    <>
+                      {tenant.documentPhotoUrl.startsWith('data:image') ? (
+                        <button
+                          type="button"
+                          onClick={() => setPreviewImage({ url: tenant.documentPhotoUrl!, title: `${tenant.name} - ${tenant.idProofType || 'ID'} Photo` })}
+                          className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold rounded-md text-[11px] flex items-center gap-1 transition-colors border border-emerald-200"
+                        >
+                          <span className="material-symbols-outlined text-[13px]">visibility</span>
+                          <span>View Photo</span>
+                        </button>
+                      ) : (
+                        <a
+                          href={tenant.documentPhotoUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-md text-[11px] flex items-center gap-1 transition-colors"
+                        >
+                          <span>View in Drive</span>
+                          <span className="material-symbols-outlined text-[12px]">open_in_new</span>
+                        </a>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingLinkFor(editingLinkFor === 'id' ? null : 'id');
+                          setManualLinkInput(tenant.documentPhotoUrl || '');
+                        }}
+                        className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-md text-[10px] transition-colors"
+                        title="Change Google Drive link"
+                      >
+                        Change Link
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setActiveScanner(activeScanner === 'id' ? null : 'id')}
+                        className="p-1 text-slate-400 hover:text-slate-700 rounded"
+                        title="Re-scan / Upload photo to Drive"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">photo_camera</span>
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingLinkFor(editingLinkFor === 'id' ? null : 'id');
+                          setManualLinkInput('');
+                        }}
+                        className="px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-md text-[10px] transition-colors"
+                      >
+                        Paste Link
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setActiveScanner(activeScanner === 'id' ? null : 'id')}
+                        className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold rounded-md text-[11px] flex items-center gap-1 transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-[14px]">photo_camera</span>
+                        <span>Upload</span>
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
 
-              <div className="flex items-center gap-1.5 shrink-0">
-                {tenant.documentPhotoUrl ? (
-                  <>
-                    <a
-                      href={tenant.documentPhotoUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-md text-[11px] flex items-center gap-1 transition-colors"
-                    >
-                      <span>View in Drive</span>
-                      <span className="material-symbols-outlined text-[12px]">open_in_new</span>
-                    </a>
+              {/* Inline editor to change or paste Drive link */}
+              {editingLinkFor === 'id' && (
+                <div className="bg-blue-50/70 p-2 rounded-lg border border-blue-200 flex flex-col gap-1.5 mt-1">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[10px] font-bold text-blue-950">
+                      Google Drive Link / Document URL for {tenant.name}'s ID:
+                    </label>
+                    {tenant.documentPhotoUrl && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (onUpdateTenant) {
+                            onUpdateTenant({
+                              ...tenant,
+                              documentPhotoUrl: '',
+                              documentsCollected: false,
+                            });
+                          }
+                          setEditingLinkFor(null);
+                        }}
+                        className="text-[10px] text-red-600 hover:underline font-semibold"
+                      >
+                        Remove Link
+                      </button>
+                    )}
+                  </div>
+                  <input
+                    type="url"
+                    value={manualLinkInput}
+                    onChange={(e) => setManualLinkInput(e.target.value)}
+                    placeholder="https://drive.google.com/file/d/..."
+                    className="w-full text-[11px] px-2.5 py-1.5 bg-white border border-slate-300 rounded font-mono focus:outline-none focus:border-blue-500"
+                  />
+                  <div className="flex items-center justify-end gap-1.5">
                     <button
                       type="button"
-                      onClick={() => setActiveScanner(activeScanner === 'id' ? null : 'id')}
-                      className="p-1 text-slate-400 hover:text-slate-700 rounded"
-                      title="Re-scan / Re-upload"
+                      onClick={() => setEditingLinkFor(null)}
+                      className="text-[11px] text-slate-500 hover:text-slate-700 font-medium px-2 py-1"
                     >
-                      <span className="material-symbols-outlined text-[16px]">photo_camera</span>
+                      Cancel
                     </button>
-                  </>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setActiveScanner(activeScanner === 'id' ? null : 'id')}
-                    className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold rounded-md text-[11px] flex items-center gap-1 transition-colors"
-                  >
-                    <span className="material-symbols-outlined text-[14px]">photo_camera</span>
-                    <span>Upload to Drive</span>
-                  </button>
-                )}
-              </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (onUpdateTenant) {
+                          onUpdateTenant({
+                            ...tenant,
+                            documentPhotoUrl: manualLinkInput.trim(),
+                            documentsCollected: !!manualLinkInput.trim(),
+                          });
+                        }
+                        setEditingLinkFor(null);
+                      }}
+                      className="text-[11px] bg-blue-700 hover:bg-blue-800 text-white font-bold px-3 py-1 rounded"
+                    >
+                      Save Drive Link
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Terms & Conditions Agreement Row */}
-            <div className="p-2.5 bg-white border border-slate-200 rounded-lg flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2 truncate">
-                <span className="material-symbols-outlined text-[18px] text-indigo-700">description</span>
-                <div className="truncate">
-                  <span className="font-bold text-[12px] text-slate-800 block leading-tight">
-                    Terms & Conditions Agreement
-                  </span>
-                  <span className="text-[10px] text-slate-500 truncate block">
-                    {tenant.agreementCollected ? 'Signed copy collected' : 'Pending signature'}
-                  </span>
+            <div className="p-2.5 bg-white border border-slate-200 rounded-lg flex flex-col gap-2">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 truncate">
+                  <span className="material-symbols-outlined text-[18px] text-indigo-700">description</span>
+                  <div className="truncate">
+                    <span className="font-bold text-[12px] text-slate-800 block leading-tight">
+                      Terms & Conditions Agreement
+                    </span>
+                    <span className="text-[10px] text-slate-500 truncate block">
+                      {tenant.agreementCollected ? 'Signed copy collected' : 'Pending signature'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {tenant.termsDocumentUrl ? (
+                    <>
+                      {tenant.termsDocumentUrl.startsWith('data:image') ? (
+                        <button
+                          type="button"
+                          onClick={() => setPreviewImage({ url: tenant.termsDocumentUrl!, title: `${tenant.name} - Agreement Document` })}
+                          className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 font-bold rounded-md text-[11px] flex items-center gap-1 transition-colors border border-indigo-200"
+                        >
+                          <span className="material-symbols-outlined text-[13px]">visibility</span>
+                          <span>View Photo</span>
+                        </button>
+                      ) : (
+                        <a
+                          href={tenant.termsDocumentUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-md text-[11px] flex items-center gap-1 transition-colors"
+                        >
+                          <span>View in Drive</span>
+                          <span className="material-symbols-outlined text-[12px]">open_in_new</span>
+                        </a>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingLinkFor(editingLinkFor === 'terms' ? null : 'terms');
+                          setManualLinkInput(tenant.termsDocumentUrl || '');
+                        }}
+                        className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-md text-[10px] transition-colors"
+                        title="Change Google Drive link"
+                      >
+                        Change Link
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setActiveScanner(activeScanner === 'terms' ? null : 'terms')}
+                        className="p-1 text-slate-400 hover:text-slate-700 rounded"
+                        title="Re-scan / Upload agreement to Drive"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">photo_camera</span>
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingLinkFor(editingLinkFor === 'terms' ? null : 'terms');
+                          setManualLinkInput('');
+                        }}
+                        className="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded-md text-[10px] transition-colors"
+                      >
+                        Paste Link
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setActiveScanner(activeScanner === 'terms' ? null : 'terms')}
+                        className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 font-bold rounded-md text-[11px] flex items-center gap-1 transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-[14px]">photo_camera</span>
+                        <span>Upload</span>
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
 
-              <div className="flex items-center gap-1.5 shrink-0">
-                {tenant.termsDocumentUrl ? (
-                  <>
-                    <a
-                      href={tenant.termsDocumentUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-md text-[11px] flex items-center gap-1 transition-colors"
-                    >
-                      <span>View in Drive</span>
-                      <span className="material-symbols-outlined text-[12px]">open_in_new</span>
-                    </a>
+              {/* Inline editor to change or paste Agreement Drive link */}
+              {editingLinkFor === 'terms' && (
+                <div className="bg-indigo-50/70 p-2 rounded-lg border border-indigo-200 flex flex-col gap-1.5 mt-1">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[10px] font-bold text-indigo-950">
+                      Google Drive Link for Signed Agreement:
+                    </label>
+                    {tenant.termsDocumentUrl && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (onUpdateTenant) {
+                            onUpdateTenant({
+                              ...tenant,
+                              termsDocumentUrl: '',
+                              agreementCollected: false,
+                            });
+                          }
+                          setEditingLinkFor(null);
+                        }}
+                        className="text-[10px] text-red-600 hover:underline font-semibold"
+                      >
+                        Remove Link
+                      </button>
+                    )}
+                  </div>
+                  <input
+                    type="url"
+                    value={manualLinkInput}
+                    onChange={(e) => setManualLinkInput(e.target.value)}
+                    placeholder="https://drive.google.com/file/d/..."
+                    className="w-full text-[11px] px-2.5 py-1.5 bg-white border border-slate-300 rounded font-mono focus:outline-none focus:border-indigo-500"
+                  />
+                  <div className="flex items-center justify-end gap-1.5">
                     <button
                       type="button"
-                      onClick={() => setActiveScanner(activeScanner === 'terms' ? null : 'terms')}
-                      className="p-1 text-slate-400 hover:text-slate-700 rounded"
-                      title="Re-scan / Re-upload"
+                      onClick={() => setEditingLinkFor(null)}
+                      className="text-[11px] text-slate-500 hover:text-slate-700 font-medium px-2 py-1"
                     >
-                      <span className="material-symbols-outlined text-[16px]">photo_camera</span>
+                      Cancel
                     </button>
-                  </>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setActiveScanner(activeScanner === 'terms' ? null : 'terms')}
-                    className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 font-bold rounded-md text-[11px] flex items-center gap-1 transition-colors"
-                  >
-                    <span className="material-symbols-outlined text-[14px]">photo_camera</span>
-                    <span>Upload Agreement</span>
-                  </button>
-                )}
-              </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (onUpdateTenant) {
+                          onUpdateTenant({
+                            ...tenant,
+                            termsDocumentUrl: manualLinkInput.trim(),
+                            agreementCollected: !!manualLinkInput.trim(),
+                          });
+                        }
+                        setEditingLinkFor(null);
+                      }}
+                      className="text-[11px] bg-indigo-700 hover:bg-indigo-800 text-white font-bold px-3 py-1 rounded"
+                    >
+                      Save Drive Link
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -449,6 +650,46 @@ export const TenantDetailModal: React.FC<TenantDetailModalProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Full Image Preview Lightbox */}
+      {previewImage && (
+        <div 
+          className="fixed inset-0 z-60 bg-black/85 flex flex-col items-center justify-center p-4 backdrop-blur-xs animate-in fade-in"
+          onClick={() => setPreviewImage(null)}
+        >
+          <div 
+            className="max-w-2xl w-full bg-slate-900 rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center p-3 px-4 border-b border-slate-800 text-white">
+              <span className="font-bold text-[13px] truncate">{previewImage.title}</span>
+              <button
+                type="button"
+                onClick={() => setPreviewImage(null)}
+                className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white"
+              >
+                <span className="material-symbols-outlined text-[18px]">close</span>
+              </button>
+            </div>
+            <div className="p-2 flex-1 flex items-center justify-center overflow-auto bg-black/60">
+              <img
+                src={previewImage.url}
+                alt={previewImage.title}
+                className="max-w-full max-h-[75vh] object-contain rounded-lg"
+              />
+            </div>
+            <div className="p-3 bg-slate-900 border-t border-slate-800 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setPreviewImage(null)}
+                className="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl text-[12px]"
+              >
+                Close Preview
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Income, IncomeCategory } from '../../types';
+import { getTodayDateString, formatMonthYearFromDateString } from '../../utils/dateUtils';
 
 interface AddIncomeModalProps {
   isOpen: boolean;
@@ -24,7 +25,7 @@ export const AddIncomeModal: React.FC<AddIncomeModalProps> = ({
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState<IncomeCategory>('Admission / Registration');
   const [amount, setAmount] = useState<number>(1000);
-  const [date, setDate] = useState('2026-08-14');
+  const [date, setDate] = useState(getTodayDateString());
   const [receivedFrom, setReceivedFrom] = useState('');
   const [paymentMode, setPaymentMode] = useState<'UPI' | 'Cash' | 'Bank Transfer'>('UPI');
   const [notes, setNotes] = useState('');
@@ -42,7 +43,7 @@ export const AddIncomeModal: React.FC<AddIncomeModalProps> = ({
       date,
       receivedFrom: receivedFrom.trim() || 'Tenant / Customer',
       paymentMode,
-      monthYear: 'Aug 2026',
+      monthYear: formatMonthYearFromDateString(date),
       notes: notes.trim() || undefined,
     });
 

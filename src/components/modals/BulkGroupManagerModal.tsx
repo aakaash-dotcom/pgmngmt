@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { BulkGroup, Room, Tenant } from '../../types';
 import { OWNER_PHONE, OWNER_UPI_ID, PG_NAME } from '../../data/initialData';
+import { getTodayDateString, getCurrentFullMonthYear } from '../../utils/dateUtils';
 
 interface BulkGroupManagerModalProps {
   isOpen: boolean;
@@ -65,13 +66,13 @@ export const BulkGroupManagerModal: React.FC<BulkGroupManagerModalProps> = ({
   const [bulkStartingPhone, setBulkStartingPhone] = useState('+91 98451 11200');
   const [bulkUniformRent, setBulkUniformRent] = useState(4500);
   const [bulkUniformAdvance, setBulkUniformAdvance] = useState(4500);
-  const [bulkCheckInDate, setBulkCheckInDate] = useState('2026-08-15');
+  const [bulkCheckInDate, setBulkCheckInDate] = useState(getTodayDateString());
   const [bulkDocumentDriveLink, setBulkDocumentDriveLink] = useState('');
 
   // Company Invoice State
   const [invoiceGroup, setInvoiceGroup] = useState(bulkGroups[0]?.name || 'Nepal Hotel Hospitality Group');
   const [invoicePaymentMode, setInvoicePaymentMode] = useState<'Bank Transfer' | 'UPI' | 'Cash'>('Bank Transfer');
-  const [invoiceMonth, setInvoiceMonth] = useState('August 2026');
+  const [invoiceMonth, setInvoiceMonth] = useState(getCurrentFullMonthYear());
 
   if (!isOpen) return null;
 
@@ -143,7 +144,15 @@ export const BulkGroupManagerModal: React.FC<BulkGroupManagerModalProps> = ({
         bedNumber: slot.bedTag,
         rentAmount: Number(bulkUniformRent),
         securityDeposit: Number(bulkUniformAdvance),
-        dueDate: '2026-08-30',
+        dueDate: (() => {
+          try {
+            const [y, m] = bulkCheckInDate.split('-');
+            const lastDay = new Date(Number(y), Number(m), 0).getDate();
+            return `${y}-${m}-${String(lastDay).padStart(2, '0')}`;
+          } catch {
+            return bulkCheckInDate;
+          }
+        })(),
         checkInDate: bulkCheckInDate,
         emergencyContact: `${matchedGroup?.contactPerson || 'Company Supervisor'} (${compName})`,
         emergencyPhone: compPhone || phoneNum,
@@ -612,9 +621,16 @@ export const BulkGroupManagerModal: React.FC<BulkGroupManagerModalProps> = ({
                   onChange={(e) => setInvoiceMonth(e.target.value)}
                   className="w-full h-[40px] px-3 border border-slate-300 rounded-xl bg-white text-slate-900 font-semibold focus:outline-none"
                 >
-                  <option value="August 2026">August 2026</option>
-                  <option value="September 2026">September 2026</option>
-                  <option value="October 2026">October 2026</option>
+                  {[-2, -1, 0, 1, 2].map((offset) => {
+                    const d = new Date();
+                    d.setMonth(d.getMonth() + offset);
+                    const val = d.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+                    return (
+                      <option key={val} value={val}>
+                        {val} {offset === 0 ? '• Current' : ''}
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
             </div>
